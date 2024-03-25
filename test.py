@@ -9,19 +9,31 @@ from Hierarchy import Hierarchy
 from Dataflow import DataFlow
 
 import xml.etree.ElementTree as ET
-from common import zeroUUID
+from common import zeroUUID, readOption
 
 
 def main():
-    code = "cdnis"
+    code = "en-trak"
     city_id = zeroUUID()
-    org = Organization()
+    
+    host=readOption("databases.organization.host")
+    port=readOption("databases.organization.port")
+    database=readOption("databases.organization.database")
+    user=readOption("databases.organization.username")
+    password=readOption("databases.organization.password")
+    org = Organization(host=host, port=port, user=user, password=password, database=database)
 
     tenant = org.Tenant(code)
     print(f"{tenant.name.values[0]} | {tenant.company_code.values[0]} | {tenant.id.values[0]}")
 
     # purge old data in tenant
-    hr = Hierarchy()
+    host=readOption("databases.hierarchy.host")
+    port=readOption("databases.hierarchy.port")
+    database=readOption("databases.hierarchy.database")
+    user=readOption("databases.hierarchy.username")
+    password=readOption("databases.hierarchy.password")
+
+    hr = Hierarchy(host=host, port=port, user=user, password=password, database=database)
     hr.purgeTree(tenant.id.values[0],
                  tenant.name.values[0],
                  tenant.company_code.values[0])  

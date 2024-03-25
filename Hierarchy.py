@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 import xml.etree.ElementTree as ET
 from Energy import Energy
 import uuid
-from common import zeroUUID, is_none_or_nan
+from common import zeroUUID, is_none_or_nan, readOption
 
 class Hierarchy:
 
@@ -14,7 +14,15 @@ class Hierarchy:
         connection_string = f"postgresql://{user}:{password}@{host}:{port}/{database}"
         # Create the engine
         self.engine = create_engine(connection_string)
-        energy = Energy("localhost", "5432", "energy", "energy", "energy")
+
+        host=readOption("databases.energy.host")
+        port=readOption("databases.energy.port")
+        database=readOption("databases.energy.database")
+        user=readOption("databases.energy.username")
+        password=readOption("databases.energy.password")
+
+        energy = Energy(host=host, port=port, user=user, password=password, database=database)
+        
         self.energy_dp = energy.dataPoint()
 
     def nodeDataPoint(self):        
