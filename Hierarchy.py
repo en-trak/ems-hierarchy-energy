@@ -44,8 +44,55 @@ class Hierarchy:
         dataDF['id'] = dataDF['id'].astype(str)
        
         return dataDF   
+    
+    def purgeNodeSite(self, id):            
+        sql = f"""
+            delete from node_sites 
+            where id = '{id}'
+        """        
+        self.engine.execute(sql)
+
+    def purgeNodePov(self, id):            
+        sql = f"""
+            delete from node_povs
+            where id = '{id}'
+        """        
+        self.engine.execute(sql)
+
+    def purgeNodeDataPoint(self, id): 
+        sql = f"""
+            delete from node_data_points 
+            where id = '{id}'
+        """        
+        self.engine.execute(sql)
+
+    def purgeRelation(self, parent_id = None, child_id = None):            
+        sql = f"""
+            delete from relations 
+            where child_id = '{child_id}'
+        """        
+        if parent_id:
+            sql = f"""
+            delete from relations 
+            where parent_id = '{parent_id}' 
+        """    
+        self.engine.execute(sql)
+
+    def purgeTree(self, tenantID, tenantName, tenantCode):
+        # purge from child nodes to parent nodes
+        # 定义根节点
+        root_node = {
+            "id": tenantID,            
+            "type": "tenant",
+            "name": f"{tenantName} | {tenantCode}",
+            "children": []
+        }
+
+        self._build_or_purge_tree(root_node, purge=True)                
+        # purge the root node
+        self.purgeRelation(parent_id = f'{tenantID}')
    
-    def _build_tree(self, node):         
+    def _build_or_purge_tree(self, node, purge=False):         
         sql = f"""
         SELECT
             r.id,
@@ -108,6 +155,9 @@ class Hierarchy:
                     
                     child_node["system_id"] = system_ref_id
 
+                    if purge:
+                        self.purgeNodeDataPoint(id = f'{child_node["id"]}')
+
                 elif child_node["type"] == "SITE":
                     sql = f"""
                     SELECT name
@@ -116,6 +166,10 @@ class Hierarchy:
                     """
                     name_df = pd.read_sql_query(sql, self.engine)
                     child_node["name"] = name_df["name"].values[0]
+
+                    if purge:
+                        self.purgeNodeSite(id = f'{child_node["id"]}')
+
                 elif child_node["type"] == "POV":
                     sql = f"""
                     SELECT name
@@ -124,16 +178,21 @@ class Hierarchy:
                     """
                     name_df = pd.read_sql_query(sql, self.engine)
                     child_node["name"] = name_df["name"].values[0]
-                    print(child_node)
+                    
+                    if purge:
+                        self.purgeNodePov(id = f'{child_node["id"]}')
 
-                print(child_node["name"])
+                # print(child_node["name"])
                 children.append(child_node)
+
+                if purge:
+                    self.purgeRelation(child_id = f'{child_node["id"]}')
 
         node["children"] = children
         for child in children:
-            self._build_tree(child)
+            self._build_or_purge_tree(child, purge=purge)
 
-    def TenantTree(self, tenantID, tenantName, tenantCode):
+    def TenantTree(self, tenantID, tenantName, tenantCode, purge=False):
         # 定义根节点
         root_node = {
             "id": tenantID,            
@@ -142,7 +201,7 @@ class Hierarchy:
             "children": []
         }
 
-        self._build_tree(root_node)
+        self._build_or_purge_tree(root_node)
 
         return root_node
     
@@ -256,8 +315,6 @@ class Hierarchy:
 
             # check insert ok
             print(f"Inserted [{return_id}]")
-            
-
 
     def create_node(self, name, node_type, city_id = None, data_id=None, desc = "", pov_unit="KWH", data_type="ENERGY"):  
         '''
