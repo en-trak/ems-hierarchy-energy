@@ -13,7 +13,7 @@ from common import zeroUUID, readOption
 
 
 def main():
-    code = "en-trak"
+    code = "cdnis"
     city_id = zeroUUID()
     
     host=readOption("databases.organization.host")
@@ -34,40 +34,38 @@ def main():
     password=readOption("databases.hierarchy.password")
 
     hr = Hierarchy(host=host, port=port, user=user, password=password, database=database)
-    hr.purgeTree(tenant.id.values[0],
-                 tenant.name.values[0],
-                 tenant.company_code.values[0])  
+    # print("====================== TenantTree purge ==========================")    
+    # hr.purgeTree(tenant.id.values[0],
+    #              tenant.name.values[0],
+    #              tenant.company_code.values[0])  
     
     # generate tenant tree in dataflow
     # dataFlow = DataFlow(code)
     # df = dataFlow.PreparingData()
     # dataFlow.create_nodes_and_datapoints(df, city_id, tenant.id.values[0])
-    
-    
+        
+    print("====================== TenantTree XML ==========================")    
+    tenantTree = hr.TenantTree(tenant.id.values[0],
+                               tenant.name.values[0],
+                               tenant.company_code.values[0])
+    # # print(tenantTree)
+    hr.SaveToXml(tenantTree, f"./output/{code}.xml")   
 
     
-    
-    
-    # tenantTree = hr.TenantTree(tenant.id.values[0],
-    #                            tenant.name.values[0],
-    #                            tenant.company_code.values[0])
-    # # # print(tenantTree)
-    # hr.SaveToXml(tenantTree, f"./output/{code}.xml")   
+    print("======================= EMS system tree XML =========================")
+    ems = EMS()
+    company = ems.company(code)
 
-    # print("================================================")    
-    # ems = EMS()
-    # company = ems.company(code)
+    # print(f"{company.name.values[0]} | {company.code.values[0]} | {company.id.values[0]}")
 
-    # # print(f"{company.name.values[0]} | {company.code.values[0]} | {company.id.values[0]}")
-
-    # companyTree = ems.SystemTree(company.id.values[0],
-    #                                  company.name.values[0],
-    #                                  company.code.values[0])
+    companyTree = ems.SystemTree(company.id.values[0],
+                                     company.name.values[0],
+                                     company.code.values[0])
     
-    # ems.SaveToXml(companyTree, f"./output/{code}_system.xml")
-    # print(companyTree)
+    ems.SaveToXml(companyTree, f"./output/{code}_system.xml")
+    print(companyTree)
     
-    # print("================================================")
+    
 
 
 
