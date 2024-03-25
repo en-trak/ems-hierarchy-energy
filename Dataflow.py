@@ -7,15 +7,40 @@ from Hierarchy import Hierarchy
 from Organization import Organization
 import xml.etree.ElementTree as ET
 import re
-from common import zeroUUID, is_none_or_nan
+from common import zeroUUID, is_none_or_nan, readOption
 
 class DataFlow(object):
 
-    def __init__(self, code = None):        
-        self.hr = Hierarchy()
-        self.org = Organization()    
-        self.ems = EMS()    
-        self.energy = Energy()
+    def __init__(self, code = None):     
+        host=readOption("databases.hierarchy.host")
+        port=readOption("databases.hierarchy.port")
+        database=readOption("databases.hierarchy.database")
+        user=readOption("databases.hierarchy.username")
+        password=readOption("databases.hierarchy.password")
+
+        self.hr = Hierarchy(host=host, port=port, user=user, password=password, database=database)
+        
+        host=readOption("databases.organization.host")
+        port=readOption("databases.organization.port")
+        database=readOption("databases.organization.database")
+        user=readOption("databases.organization.username")
+        password=readOption("databases.organization.password")
+        self.org = Organization(host=host, port=port, user=user, password=password, database=database)
+
+        host=readOption("databases.ems.host")
+        port=readOption("databases.ems.port")
+        database=readOption("databases.ems.database")
+        user=readOption("databases.ems.username")
+        password=readOption("databases.ems.password")
+        self.ems = EMS(host=host, port=port, user=user, password=password, database=database)
+
+        host=readOption("databases.energy.host")
+        port=readOption("databases.energy.port")
+        database=readOption("databases.energy.database")
+        user=readOption("databases.energy.username")
+        password=readOption("databases.energy.password")
+        self.energy = Energy(host=host, port=port, user=user, password=password, database=database)
+        
 
         self.code = code
     
