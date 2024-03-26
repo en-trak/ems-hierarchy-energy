@@ -13,7 +13,7 @@ from common import zeroUUID, readOption
 
 
 def main():
-    code = "cdnis"
+    code = readOption("code")
     city_id = zeroUUID()
     
     host=readOption("databases.organization.host")
@@ -53,7 +53,7 @@ def main():
 
     
     print("======================= EMS system tree XML =========================")
-    ems = EMS()
+    ems = EMS(host=host, port=port, user=user, password=password, database=database)
     company = ems.company(code)
 
     # print(f"{company.name.values[0]} | {company.code.values[0]} | {company.id.values[0]}")
