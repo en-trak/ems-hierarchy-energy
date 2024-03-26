@@ -107,7 +107,7 @@ class DataFlow(object):
 
         return df
 
-    def create_nodes_and_datapoints(self, sys_df, tenant_id, force_new=False):
+    def create_nodes_and_datapoints(self, sys_df, city_id, tenant_id, force_new=False):
         """
         根据能源系统的属性创建不同的节点和数据点，并建立它们之间的关系
 
