@@ -12,7 +12,7 @@ from common import zeroUUID, is_none_or_nan, readOption
 
 class DataFlow(object):
 
-    def __init__(self, code = None):     
+    def __init__(self, code = None, components_binding=False):     
         host=readOption("databases.hierarchy.host")
         port=readOption("databases.hierarchy.port")
         database=readOption("databases.hierarchy.database")
@@ -51,6 +51,7 @@ class DataFlow(object):
         
 
         self.code = code
+        self.components_binding = components_binding
     
     
     def Building(self):
@@ -335,6 +336,6 @@ class DataFlow(object):
         # 创建父子节点关系
         # 根据id_x, parent_system_id 关系，在hierarchy 的 relatives里边创建 父子关系        
         print("--------------------------------")
-        self.hr.create_relations(sys_df)
+        self.hr.create_relations(sys_df, components_binding = self.components_binding)
 
         

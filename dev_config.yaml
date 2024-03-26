@@ -36,3 +36,4 @@ databases:
     password: sT7J9mdgbkNMbw5
 
 code: "demohk"    
+components_binding: True

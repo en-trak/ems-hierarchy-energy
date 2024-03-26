@@ -14,6 +14,8 @@ from common import zeroUUID, readOption
 
 def main():
     code = readOption("code")
+    components_binding = readOption("components_binding")
+
     city_id = zeroUUID()
     
     host=readOption("databases.organization.host")
@@ -40,7 +42,7 @@ def main():
                  tenant.company_code.values[0])  
     
     # generate tenant tree in dataflow
-    dataFlow = DataFlow(code)
+    dataFlow = DataFlow(code, components_binding)
     df = dataFlow.PreparingData()
     dataFlow.create_nodes_and_datapoints(df, city_id, tenant.id.values[0])
     # export the df to csv file

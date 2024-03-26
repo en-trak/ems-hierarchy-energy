@@ -246,7 +246,7 @@ class Hierarchy:
         tree = ET.ElementTree(root_element)
         tree.write(filename)
         
-    def create_relations(self, df):
+    def create_relations(self, df, components_binding = False):
         '''
         df:
         ['id_x', 'parent_system_id', 'name_x', 'source_key', 'meter_id',
@@ -303,6 +303,10 @@ class Hierarchy:
 
             parent_type_level = child_type_level + 1 if (child_type_level + 1) < len_node_typeLevels else child_type_level                
             parent_type = NODE_TYPE[parent_type_level]
+            
+            if not components_binding and row['component'] == 1:
+                continue
+            
             if not is_none_or_nan(row['parent_system_id']):
                 parent_id = row['parent_system_id']
                 parent = df[df['id_x']==parent_id]
@@ -314,6 +318,7 @@ class Hierarchy:
                 if child_type_level > parent_type_level:
                     error_info = f"Error: {child_type} should under the level of {parent_type}"                    
                     raise ValueError(error_info)
+            
             
             sqlCheck = f"""
                     SELECT id FROM relations

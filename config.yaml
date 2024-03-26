@@ -36,3 +36,5 @@ databases:
     password: city
 
 code: "demohk"    
+components_binding: True
+
