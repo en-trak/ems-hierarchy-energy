@@ -298,12 +298,16 @@ class Hierarchy:
 
             child_type_level = NODE_TYPE_LEVEL[child_type]
 
+            # 默认把tenant_id作为所有节点的父节点
             parent_id = row['tenant_id'] #zeroUUID()
+
             parent_type_level = child_type_level + 1 if (child_type_level + 1) < len_node_typeLevels else child_type_level                
             parent_type = NODE_TYPE[parent_type_level]
             if not is_none_or_nan(row['parent_system_id']):
                 parent_id = row['parent_system_id']
                 parent = df[df['id_x']==parent_id]
+                if parent.shape[0]==0:
+                    continue
                 parent_id = parent['node_id'].values[0]
                 parent_type = parent['node_type'].values[0]
                 parent_type_level = NODE_TYPE_LEVEL[parent_type]
@@ -386,7 +390,7 @@ class Hierarchy:
         if node_type == "DATAPOINT":
             # print(f"---- create node: {node_type}, sql={sql} ----")            
             dataDF = pd.read_sql_query(mapSqlCheck[node_type], self.engine)
-            if dataDF.shape[0] > 0 and not pd.isna(dataDF['id'].iloc[0]):
+            if dataDF.shape[0] > 0 and not pd.isnull(dataDF['id'].iloc[0]):
                 return dataDF['id'].iloc[0], dataDF['ref_id'].iloc[0]        
 
             datapoint_id, ref_id = self.engine.execute(sql).fetchone()[:2]
@@ -395,7 +399,7 @@ class Hierarchy:
         else:
             # print(f"---- create node: {node_type}, sql={sql} ----")            
             dataDF = pd.read_sql_query(mapSqlCheck[node_type], self.engine)
-            if dataDF.shape[0] > 0 and not pd.isna(dataDF['id'].iloc[0]):
+            if dataDF.shape[0] > 0 and not pd.isnull(dataDF['id'].iloc[0]):
                 return dataDF['id'].iloc[0]            
             
             datapoint_id = self.engine.execute(sql).fetchone()[0]

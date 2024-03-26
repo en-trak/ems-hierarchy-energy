@@ -5,6 +5,7 @@ from EMS import EMS
 from Energy import Energy
 from Hierarchy import Hierarchy
 from Organization import Organization
+from City import City
 import xml.etree.ElementTree as ET
 import re
 from common import zeroUUID, is_none_or_nan, readOption
@@ -40,6 +41,13 @@ class DataFlow(object):
         user=readOption("databases.energy.username")
         password=readOption("databases.energy.password")
         self.energy = Energy(host=host, port=port, user=user, password=password, database=database)
+
+        host=readOption("databases.city.host")
+        port=readOption("databases.city.port")
+        database=readOption("databases.city.database")
+        user=readOption("databases.city.username")
+        password=readOption("databases.city.password")
+        self.city = City(host=host, port=port, user=user, password=password, database=database)
         
 
         self.code = code
@@ -99,7 +107,7 @@ class DataFlow(object):
 
         return df
 
-    def create_nodes_and_datapoints(self, sys_df, city_id, tenant_id, force_new=False):
+    def create_nodes_and_datapoints(self, sys_df, tenant_id, force_new=False):
         """
         根据能源系统的属性创建不同的节点和数据点，并建立它们之间的关系
 
@@ -109,7 +117,19 @@ class DataFlow(object):
         Returns:
             None
         """        
+        city_name_df = sys_df.loc[sys_df["city_name"].notnull()] #sys_df["city_name"].iloc[0]
+        city_name = city_name_df["city_name"].iloc[0]
+        city = self.city.city(city_name)        
         
+        city_id = zeroUUID()
+        if city.shape[0] == 0:
+            print(f'''city: {city_name}, are not found the city id in city database by the city name!!! 
+                  I will use zero UUID as city id''')
+        else:
+            city_id = city['id'].iloc[0]
+            print(f'''city: {city_name}, id: {city_id}''')
+        
+
         sys_df["index"] = sys_df.index
         sys_df['use_datapoint_id'] = sys_df['id_y']
         sys_df['use_system_id'] = np.nan #sys_df['ref_id']
