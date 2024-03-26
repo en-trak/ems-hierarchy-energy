@@ -290,6 +290,12 @@ class Hierarchy:
         for _, row in df.iterrows():
             child_id = row['node_id']
             child_type = row['node_type']
+            # 在导入数据时候，没有找到此system对应的energy.datapoint.id
+            # 或则表达式匹配不上，均会导致节点类型为初始值（unknown)
+            # 所以不把此类节点建立tree结构，直接忽略
+            if child_type == 'unknown':
+                continue
+
             child_type_level = NODE_TYPE_LEVEL[child_type]
 
             parent_id = row['tenant_id'] #zeroUUID()
