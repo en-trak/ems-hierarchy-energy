@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import xml.etree.ElementTree as ET
 from Energy import Energy
 import uuid
@@ -53,42 +53,52 @@ class Hierarchy:
        
         return dataDF   
     
-    def purgeNodeSite(self, id):            
-        sql = f"""
-            delete from node_sites 
-            where id = '{id}'
-        """        
-        with self.engine.connect() as connection:
-            connection.execute(sql)
+    def purgeNodeSite(self, id):
+        connection = self.engine.connect()
 
-    def purgeNodePov(self, id):            
-        sql = f"""
-            delete from node_povs
-            where id = '{id}'
-        """        
-        with self.engine.connect() as connection:
-            connection.execute(sql)
+        # Build your SQL statement as a compiled expression
+        sql = text("DELETE FROM node_sites WHERE id = :id")
 
-    def purgeNodeDataPoint(self, id): 
-        sql = f"""
-            delete from node_data_points 
-            where id = '{id}'
-        """        
-        with self.engine.connect() as connection:
-            connection.execute(sql)
+        # Execute with the connection and provide the parameter value
+        connection.execute(sql, id=id)
 
-    def purgeRelation(self, parent_id = None, child_id = None):            
-        sql = f"""
-            delete from relations 
-            where child_id = '{child_id}'
-        """        
+        connection.close()
+
+    def purgeNodePov(self, id):
+        connection = self.engine.connect()
+
+        # Build your SQL statement as a compiled expression
+        sql = text("DELETE FROM node_povs WHERE id = :id")
+
+        # Execute with the connection and provide the parameter value
+        connection.execute(sql, id=id)
+
+        connection.close()
+
+    def purgeNodeDataPoint(self, id):         
+        connection = self.engine.connect()
+
+        # Build your SQL statement as a compiled expression
+        sql = text("DELETE FROM node_data_points WHERE id = :id")
+
+        # Execute with the connection and provide the parameter value
+        connection.execute(sql, id=id)
+
+        connection.close()
+
+    def purgeRelation(self, parent_id = None, child_id = None):         
+        id = child_id   
+        sql = text(" delete from relations where child_id = :id")        
         if parent_id:
-            sql = f"""
-            delete from relations 
-            where parent_id = '{parent_id}' 
-        """    
-        with self.engine.connect() as connection:
-            connection.execute(sql)
+            id = parent_id
+            sql = text(" delete from relations where parent_id = :id")
+      
+        connection = self.engine.connect()     
+
+        # Execute with the connection and provide the parameter value
+        connection.execute(sql, id=id)
+
+        connection.close()
 
     def purgeTree(self, tenantID, tenantName, tenantCode):
         # purge from child nodes to parent nodes
