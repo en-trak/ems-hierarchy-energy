@@ -114,11 +114,11 @@ class Energy:
             VALUES ('{new_id}', '{ref_id}', '{name}', '{meter_id}', {status})
             RETURNING id;
         """
-        
-        datapoint_id = self.engine.execute(sql).fetchone()[0]
 
-        return datapoint_id
-    
+        with self.engine.connect() as connection:
+            datapoint_id = connection.execute(sql).fetchone()[0]
+            return datapoint_id
+        
     
     def create_new_virtual_datapoint(self, tenant_id, datapoint_id, name, composition_expression):  
         """
@@ -136,8 +136,8 @@ class Energy:
             VALUES ('{new_id}', '{tenant_id}', '{datapoint_id}', '{name}', '{composition_expression}', 2)
             RETURNING id;
         """
-        
-        datapoint_id = self.engine.execute(sql).fetchone()[0]
+        with self.engine.connect() as connection:
+            datapoint_id = connection.execute(sql).fetchone()[0]
 
         return datapoint_id
 
@@ -148,8 +148,8 @@ class Energy:
             set expression = '{composition_expression}'
             where datapoint_id = '{datapoint_id}'
         """
-        
-        self.engine.execute(sql)
+        with self.engine.connect() as connection:
+            connection.execute(sql)
     
     
     def create_new_meter(self, ref_id, name, 
@@ -175,10 +175,9 @@ class Energy:
             VALUES ('{new_id}', '{ref_id}', '{name}', {status}, {dataflow_mode}, {site_id}, {data_type}, {meter_type}, {meter_status})
             RETURNING id;
         """
-        
-        meter_id = self.engine.execute(sql).fetchone()[0]
-
-        return meter_id
+        with self.engine.connect() as connection:
+            meter_id = connection.fetchone()[0]
+            return meter_id
         
     
     

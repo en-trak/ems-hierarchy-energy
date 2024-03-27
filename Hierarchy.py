@@ -58,21 +58,24 @@ class Hierarchy:
             delete from node_sites 
             where id = '{id}'
         """        
-        self.engine.execute(sql)
+        with self.engine.connect() as connection:
+            connection.execute(sql)
 
     def purgeNodePov(self, id):            
         sql = f"""
             delete from node_povs
             where id = '{id}'
         """        
-        self.engine.execute(sql)
+        with self.engine.connect() as connection:
+            connection.execute(sql)
 
     def purgeNodeDataPoint(self, id): 
         sql = f"""
             delete from node_data_points 
             where id = '{id}'
         """        
-        self.engine.execute(sql)
+        with self.engine.connect() as connection:
+            connection.execute(sql)
 
     def purgeRelation(self, parent_id = None, child_id = None):            
         sql = f"""
@@ -84,7 +87,8 @@ class Hierarchy:
             delete from relations 
             where parent_id = '{parent_id}' 
         """    
-        self.engine.execute(sql)
+        with self.engine.connect() as connection:
+            connection.execute(sql)
 
     def purgeTree(self, tenantID, tenantName, tenantCode):
         # purge from child nodes to parent nodes
@@ -334,7 +338,8 @@ class Hierarchy:
                     VALUES ('{parent_id}', '{parent_type}', '{child_id}', '{child_type}')
                     RETURNING id;
             '''
-            return_id = self.engine.execute(sqlInsert).fetchone()[0]
+            with self.engine.connect() as connection:                
+                return_id = connection.execute(sqlInsert).fetchone()[0]
 
             # check insert ok
             print(f"Inserted [{return_id}]")
@@ -398,7 +403,8 @@ class Hierarchy:
             if dataDF.shape[0] > 0 and not pd.isnull(dataDF['id'].iloc[0]):
                 return dataDF['id'].iloc[0], dataDF['ref_id'].iloc[0]        
 
-            datapoint_id, ref_id = self.engine.execute(sql).fetchone()[:2]
+            with self.engine.connect() as connection:
+                datapoint_id, ref_id = connection.execute(sql).fetchone()[:2]
 
             return datapoint_id, ref_id
         else:
@@ -407,7 +413,8 @@ class Hierarchy:
             if dataDF.shape[0] > 0 and not pd.isnull(dataDF['id'].iloc[0]):
                 return dataDF['id'].iloc[0]            
             
-            datapoint_id = self.engine.execute(sql).fetchone()[0]
+            with self.engine.connect() as connection:
+                datapoint_id = connection.execute(sql).fetchone()[0]
 
             return datapoint_id
 
