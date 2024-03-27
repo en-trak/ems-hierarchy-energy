@@ -1,40 +1,40 @@
 databases:  
   ems:
     driver: org.postgresql.Driver
-    host: localhost
+    host: db-sbos-prod-instance-1.c10qruchydgi.ap-southeast-1.rds.amazonaws.com
     port: 5432
     database: mangopie
     username: mangopie
-    password: mangopie
+    password: bBX8pkRi8sjbFgf
   energy:
     driver: org.postgresql.Driver
-    host: localhost
+    host: db-sbos-prod-instance-1.c10qruchydgi.ap-southeast-1.rds.amazonaws.com
     port: 5432
     database: energy
     username: energy
-    password: energy
+    password: CstIgRq8XVi97Tw
   hierarchy:
     driver: org.postgresql.Driver
-    host: localhost
+    host: db-sbos-prod-instance-1.c10qruchydgi.ap-southeast-1.rds.amazonaws.com
     port: 5432
     database: hierarchy
     username: hierarchy
-    password: hierarchy
+    password: iCgdkiZMIEAyuFI
   organization:
     driver: org.postgresql.Driver
-    host: localhost
+    host: db-sbos-prod-instance-1.c10qruchydgi.ap-southeast-1.rds.amazonaws.com
     port: 5432
     database: organization
     username: organization
-    password: organization
+    password: hYhPoD3sK6KHiGfVC9XF
   city:
     driver: org.postgresql.Driver
-    host: localhost
+    host: db-sbos-prod-instance-1.c10qruchydgi.ap-southeast-1.rds.amazonaws.com
     port: 5432
     database: city
     username: city
-    password: city
+    password: rXGajaRh4haudHiwBVFR
 
 code: "demohk"    
-components_binding: True
+components_binding: False
 

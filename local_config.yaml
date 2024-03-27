@@ -1,0 +1,40 @@
+databases:  
+  ems:
+    driver: org.postgresql.Driver
+    host: localhost
+    port: 5432
+    database: mangopie
+    username: mangopie
+    password: mangopie
+  energy:
+    driver: org.postgresql.Driver
+    host: localhost
+    port: 5432
+    database: energy
+    username: energy
+    password: energy
+  hierarchy:
+    driver: org.postgresql.Driver
+    host: localhost
+    port: 5432
+    database: hierarchy
+    username: hierarchy
+    password: hierarchy
+  organization:
+    driver: org.postgresql.Driver
+    host: localhost
+    port: 5432
+    database: organization
+    username: organization
+    password: organization
+  city:
+    driver: org.postgresql.Driver
+    host: localhost
+    port: 5432
+    database: city
+    username: city
+    password: city
+
+code: "demohk"    
+components_binding: True
+
