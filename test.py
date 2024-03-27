@@ -14,9 +14,7 @@ from common import zeroUUID, readOption
 
 def main():
     code = readOption("code")
-    components_binding = readOption("components_binding")
-
-    city_id = zeroUUID()
+    components_binding = readOption("components_binding")    
     
     host=readOption("databases.organization.host")
     port=readOption("databases.organization.port")
@@ -36,7 +34,7 @@ def main():
     password=readOption("databases.hierarchy.password")
 
     hr = Hierarchy(host=host, port=port, user=user, password=password, database=database)
-    # print("====================== TenantTree purge ==========================")    
+    print("====================== TenantTree purge ==========================")    
     hr.purgeTree(tenant.id.values[0],
                  tenant.name.values[0],
                  tenant.company_code.values[0])  
@@ -44,7 +42,7 @@ def main():
     # generate tenant tree in dataflow
     dataFlow = DataFlow(code, components_binding)
     df = dataFlow.PreparingData()
-    dataFlow.create_nodes_and_datapoints(df, city_id, tenant.id.values[0])
+    dataFlow.create_nodes_and_datapoints(df, tenant.id.values[0])
     # export the df to csv file
     # the node_type is 'unknown' means they will not be in hierarchy tree
     df.to_csv(f"./output/new_{code}.csv")

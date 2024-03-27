@@ -108,7 +108,7 @@ class DataFlow(object):
 
         return df
 
-    def create_nodes_and_datapoints(self, sys_df, city_id, tenant_id, force_new=False):
+    def create_nodes_and_datapoints(self, sys_df, tenant_id, force_new=False):
         """
         根据能源系统的属性创建不同的节点和数据点，并建立它们之间的关系
 
@@ -117,20 +117,7 @@ class DataFlow(object):
 
         Returns:
             None
-        """        
-        city_name_df = sys_df.loc[sys_df["city_name"].notnull()] #sys_df["city_name"].iloc[0]
-        city_name = city_name_df["city_name"].iloc[0]
-        city = self.city.city(city_name)        
-        
-        city_id = zeroUUID()
-        if city.shape[0] == 0:
-            print(f'''city: {city_name}, are not found the city id in city database by the city name!!! 
-                  I will use zero UUID as city id''')
-        else:
-            city_id = city['id'].iloc[0]
-            print(f'''city: {city_name}, id: {city_id}''')
-        
-
+        """
         sys_df["index"] = sys_df.index
         sys_df['use_datapoint_id'] = sys_df['id_y']
         sys_df['use_system_id'] = np.nan #sys_df['ref_id']
@@ -145,6 +132,23 @@ class DataFlow(object):
         for i in range(len(sys_df)):
             if np.isnan(sys_df.loc[i, 'parent_system_id']) \
                 and is_none_or_nan(sys_df.loc[i, 'component_of_id']):                
+                
+                # city_name_df = sys_df.loc[sys_df["city_name"].notnull()] #sys_df["city_name"].iloc[0]
+                # city_name = city_name_df["city_name"].iloc[0]
+                city_name = sys_df.loc[i, 'city_name']                
+                city = self.city.city(city_name)     
+                city_id = zeroUUID()
+                
+                if city.shape[0] == 0:
+                    print(f'''city: {city_name}, are not found the city id in city database by the city name!!! 
+                        I will use Hong Kong's id as city id''')
+                    city_name = 'Hong Kong'
+                    city = self.city.city(city_name)
+                    city_id = city['id'].iloc[0]
+                    print(f'''city: {city_name}, id: {city_id}''')
+                else:
+                    city_id = city['id'].iloc[0]
+                    print(f'''city: {city_name}, id: {city_id}''')
 
                 node_id = self.hr.create_node(name=sys_df.loc[i, 'name_x'], 
                                               city_id=city_id,
