@@ -22,4 +22,4 @@ class City:
         dataDF = pd.read_sql_query(sql, self.engine)
 
         return dataDF
-   
+    

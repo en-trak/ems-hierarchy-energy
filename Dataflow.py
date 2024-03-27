@@ -225,14 +225,24 @@ class DataFlow(object):
 
 
                 # 创建新的NODE, DATAPOINT类型的node
-                node_id, node_ref_id = None, None
-                if sys_df.loc[i, "node_ref_id"] =='unknown' and _energy_datapoint_id is not None:                
-                    data_id = _energy_datapoint_id #sys_df.loc[i, "id_y"]
-                    node_id, node_ref_id = self.hr.create_node(node_type='DATAPOINT', 
+                node_id, node_ref_id = None, None                
+                if sys_df.loc[i, "node_ref_id"] =='unknown' and _energy_datapoint_id is not None:                                    
+                    data_id = _energy_datapoint_id #sys_df.loc[i, "id_y"]                    
+
+                    try:
+                        node_id, node_ref_id = self.hr.create_node(node_type='DATAPOINT', 
                                                                data_type="ENERGY", 
                                                                name=sys_df.loc[i, 'name_x'],
-                                                               desc = f"cid {sys_df.loc[i, 'company_id']} sid {sys_df.loc[i, 'id_x']}",
+                                                            #    desc = f"cid {sys_df.loc[i, 'company_id']} sid {sys_df.loc[i, 'id_x']}",
+                                                            # 如果是多个systems（同一个meterID，相同sourckey），虽然systemID不同，现在统一使用其中一个systemID
+                                                            # 这样hierarchy.node_data_points.id 跟 energy.enerngy_datapoint.id就是1对1关系
+                                                               desc = f"cid {sys_df.loc[i, 'company_id']} sid {_ref_id}",
                                                                data_id = data_id )         
+                    except Exception as e:
+                        print(f"create_node DATAPOINT err: {str(e)}")         
+                        node_id, node_ref_id = self.hr.query_datapoint_node(data_id)                     
+                    
+                    
                     sys_df.loc[i, "node_type"] = 'DATAPOINT'       
                     sys_df.loc[i, "node_id"] = node_id       
                     sys_df.loc[i, "node_ref_id"] = node_ref_id  

@@ -38,6 +38,7 @@ def main():
     hr.purgeTree(tenant.id.values[0],
                  tenant.name.values[0],
                  tenant.company_code.values[0])  
+       
     
     # generate tenant tree in dataflow
     dataFlow = DataFlow(code, components_binding)
@@ -47,25 +48,30 @@ def main():
     # the node_type is 'unknown' means they will not be in hierarchy tree
     df.to_csv(f"./output/new_{code}.csv")
         
-    print("====================== TenantTree XML ==========================")    
+    # print("====================== TenantTree XML ==========================")    
     tenantTree = hr.TenantTree(tenant.id.values[0],
                                tenant.name.values[0],
                                tenant.company_code.values[0])
     # # print(tenantTree)
     hr.SaveToXml(tenantTree, f"./output/new_{code}.xml")   
 
-    
+
+    host=readOption("databases.ems.host")
+    port=readOption("databases.ems.port")
+    database=readOption("databases.ems.database")
+    user=readOption("databases.ems.username")
+    password=readOption("databases.ems.password")    
     # print("======================= EMS system tree XML =========================")
-    # ems = EMS(host=host, port=port, user=user, password=password, database=database)
-    # company = ems.company(code)
+    ems = EMS(host=host, port=port, user=user, password=password, database=database)
+    company = ems.company(code)
 
-    # # print(f"{company.name.values[0]} | {company.code.values[0]} | {company.id.values[0]}")
+    # print(f"{company.name.values[0]} | {company.code.values[0]} | {company.id.values[0]}")
 
-    # companyTree = ems.SystemTree(company.id.values[0],
-    #                                  company.name.values[0],
-    #                                  company.code.values[0])
+    companyTree = ems.SystemTree(company.id.values[0],
+                                     company.name.values[0],
+                                     company.code.values[0])
     
-    # ems.SaveToXml(companyTree, f"./output/{code}_system.xml")
+    ems.SaveToXml(companyTree, f"./output/{code}_system.xml")
     # print(companyTree)
     
     

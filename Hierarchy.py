@@ -354,6 +354,15 @@ class Hierarchy:
             # check insert ok
             print(f"Inserted [{return_id}]")
 
+    def query_datapoint_node(self, data_id):
+        sql = f''' SELECT id, ref_id FROM node_data_points
+                    WHERE data_id = '{data_id}' '''
+        
+        dataDF = pd.read_sql_query(sql, self.engine)
+        if dataDF.shape[0] > 0 and not pd.isnull(dataDF['id'].iloc[0]):
+            return dataDF['id'].iloc[0], dataDF['ref_id'].iloc[0]  
+        return None, None
+
     def create_node(self, name, node_type, city_id = None, data_id=None, desc = "", pov_unit="KWH", data_type="ENERGY"):  
         '''
         hierarchy=> select distinct data_type from node_data_points;
