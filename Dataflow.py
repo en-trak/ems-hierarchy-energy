@@ -67,18 +67,24 @@ class DataFlow(object):
 
         new_names = {'id_x': 'company_id', 'id_y': 'tenant_id', 'name_x': 'company', "code": 'company_code'}
         tenant_df = tenant_df.rename(columns=new_names)
-        
+        tenant_df.to_csv(f"./output/tenant_df.csv")
+
         # print("---------------Tenant-----------------")
         # print(tenant_df[:3])
 
         sys_df = self.ems.systems(code=self.code)
+        sys_df.to_csv(f"./output/sys_df.csv")
+
         dp = self.energy.dataPoint(columns = ["id", "ref_id", "name"])
+        dp.to_csv(f"./output/dp.csv")
 
         sys_dp_df = pd.merge(sys_df, dp, how="left", left_on="id", right_on="ref_id")
+        sys_dp_df.to_csv(f"./output/sys_dp_df.csv")
         # print("---------------System with datapoint-----------------")
         # print(sys_dp_df[:1])
 
         result_df = pd.merge(sys_dp_df, tenant_df, how="left", left_on="company_id", right_on="company_id")
+        result_df.to_csv(f"./output/result_df.csv")
         # print("---------------System with datapoint, tenant-----------------")
         # print(result_df[:8])
 
