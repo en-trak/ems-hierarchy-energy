@@ -170,8 +170,8 @@ class DataFlow(object):
         for i in range(len(sys_df)):
             if not is_none_or_nan(sys_df.loc[i, 'parent_system_id']) \
                 and is_none_or_nan(sys_df.loc[i, 'composition_expression']) \
-                and is_none_or_nan(sys_df.loc[i, 'meter_id']) \
-                and is_none_or_nan(sys_df.loc[i, 'source_key']):
+                and is_none_or_nan(sys_df.loc[i, 'meter_id']):
+                # and is_none_or_nan(sys_df.loc[i, 'source_key']):
                 # 如果meter_id是空打，而sourckey非空，为脏数据，可以ignore
 
                 node_id = self.hr.create_node(name=sys_df.loc[i, 'name_x'], 
@@ -183,7 +183,9 @@ class DataFlow(object):
         # data system which has data(kwh), defined as hierachy.node_datapoint and energy.energy_datapoint                
         for i in range(len(sys_df)):
             if not is_none_or_nan(sys_df.loc[i, 'meter_id']) \
-                and (sys_df.loc[i, 'source_key'] is not None and len(sys_df.loc[i, 'source_key']) > 0):
+                and not is_none_or_nan(sys_df.loc[i, 'source_key'] \
+                and len(str(sys_df.loc[i, 'source_key'])) > 0):
+                # and len(sys_df.loc[i, 'source_key']) > 0):
 
                 meter_id = sys_df.loc[i, 'meter_id']
                 source_key = sys_df.loc[i, 'source_key']
@@ -196,9 +198,9 @@ class DataFlow(object):
                 if _df.shape[0] == 0:
                     # 说明此sourcekey对应的所有systems都没有一个在energy.datapoint中出现
                     # 创建一个新的energy.datapoint
-                    _ref_id = int(sys_df.loc[i, 'id_x'])
+                    _ref_id = sys_df.loc[i, 'id_x']
                     name = sys_df.loc[i, "name_x"]
-                    meter_id = int(sys_df.loc[i, "meter_id"])
+                    meter_id = sys_df.loc[i, "meter_id"]
 
                     if force_new:
                         # TODO
@@ -260,29 +262,11 @@ class DataFlow(object):
                         print(f"create_node DATAPOINT err: {str(e)}")         
                         node_id, node_ref_id = self.hr.query_datapoint_node(data_id)                     
                     
-                    
+                    # print(f"node_id:{node_id}, node_ref_id:{node_ref_id}")
                     sys_df.loc[i, "node_type"] = 'DATAPOINT'       
                     sys_df.loc[i, "node_id"] = node_id       
                     sys_df.loc[i, "node_ref_id"] = node_ref_id  
-
-                # 使用同样meterid, source_key的system，全部更新,
-                # 都使用同一个ref_id
-                # if _ref_id is not None:
-                #     _df = sys_df[(sys_df['meter_id']==meter_id) & \
-                #                     (sys_df['source_key']==source_key) & \
-                #                         (pd.isnull(sys_df['use_system_id']))]
-                    
-                #     for idx in range(len(_df)):
-                #         row = _df.iloc[idx]                        
-                #         sys_df.loc[row['index'], "use_system_id"] = _ref_id
-                #         sys_df.loc[row['index'], "use_datapoint_id"] = _energy_datapoint_id
-                #         sys_df.loc[row['index'], "ref_id"] = _ref_id
-                #         sys_df.loc[row['index'], "id_y"] = _energy_datapoint_id
-
-                #         sys_df.loc[row['index'], "node_type"] = 'DATAPOINT'       
-                #         sys_df.loc[row['index'], "node_id"] = node_id       
-                #         sys_df.loc[row['index'], "node_ref_id"] = node_ref_id  
-                    
+     
                 # 更新
                 if _ref_id is not None:
                     sys_df.loc[i, "use_system_id"] = _ref_id
