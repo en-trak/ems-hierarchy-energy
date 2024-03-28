@@ -196,9 +196,9 @@ class DataFlow(object):
                 if _df.shape[0] == 0:
                     # 说明此sourcekey对应的所有systems都没有一个在energy.datapoint中出现
                     # 创建一个新的energy.datapoint
-                    _ref_id = sys_df.loc[i, 'id_x']
+                    _ref_id = int(sys_df.loc[i, 'id_x'])
                     name = sys_df.loc[i, "name_x"]
-                    meter_id = sys_df.loc[i, "meter_id"]
+                    meter_id = int(sys_df.loc[i, "meter_id"])
 
                     if force_new:
                         # TODO
@@ -225,7 +225,7 @@ class DataFlow(object):
                     _df2 = _df[(~pd.isnull(_df['id_x'])) & (~pd.isnull(_df['id_y']))]            
 
                     if _df2.shape[0] == 0:
-                        print(f"meter:[{meter_id}] source_key:[{source_key}] dosnt find right datapoint which has datapoint.id")
+                        print(f"meter:[{int(meter_id)}] source_key:[{source_key}] dosnt find right datapoint which has datapoint.id")
                         _energy_datapoint_id = None
                         _ref_id = None
 
@@ -378,6 +378,6 @@ class DataFlow(object):
         # print("--------------------------------")
         self.hr.create_relations(sys_df, components_binding = self.components_binding)
 
-        # sys_df.to_csv(f"./output/sys_df_after.csv")
+        sys_df.to_csv(f"./output/sys_df_after.csv")
 
         
