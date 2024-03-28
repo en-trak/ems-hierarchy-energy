@@ -309,6 +309,8 @@ class Hierarchy:
             # 所以不把此类节点建立tree结构，直接忽略
             if child_type == 'unknown':
                 continue
+            if is_none_or_nan(child_id):
+                continue
 
             child_type_level = NODE_TYPE_LEVEL[child_type]
 
@@ -319,6 +321,7 @@ class Hierarchy:
             parent_type = NODE_TYPE[parent_type_level]
             
             if not components_binding and row['component'] == 1:
+                print(f"component child_id:[{child_id}]")
                 continue
             
             if not is_none_or_nan(row['parent_system_id']):
@@ -329,6 +332,8 @@ class Hierarchy:
                 parent_id = parent['node_id'].values[0]
                 parent_type = parent['node_type'].values[0]
                 if parent_type == 'unknown':
+                    continue
+                if is_none_or_nan(parent_id):
                     continue
                 parent_type_level = NODE_TYPE_LEVEL[parent_type]
                 if child_type_level > parent_type_level:

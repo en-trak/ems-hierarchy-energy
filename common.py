@@ -1,5 +1,6 @@
 import uuid
 import numpy as np
+import pandas as pd
 import yaml
 
 def zeroUUID():
@@ -21,17 +22,7 @@ def zeroUUID():
   return zero_uuid
 
 def is_none_or_nan(value):
-  """
-  判断值是否为 NaN 或 None。
-
-  Args:
-    value: 要判断的值。
-
-  Returns:
-    如果值为 NaN 或 None，则返回 True；否则返回 False。
-  """
-
-  return value is None or np.isnan(value)
+  return value is None or pd.isnull(value)
 
 
 import yaml

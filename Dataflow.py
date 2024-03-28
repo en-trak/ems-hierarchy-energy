@@ -168,10 +168,10 @@ class DataFlow(object):
         
         # folder system which has no meterid, defined as hierachy.node_pov
         for i in range(len(sys_df)):
-            if not np.isnan(sys_df.loc[i, 'parent_system_id']) \
-                and sys_df.loc[i, 'composition_expression'] is None \
-                and np.isnan(sys_df.loc[i, 'meter_id']) \
-                and (sys_df.loc[i, 'source_key'] is None or len(sys_df.loc[i, 'source_key'])==0):
+            if not is_none_or_nan(sys_df.loc[i, 'parent_system_id']) \
+                and is_none_or_nan(sys_df.loc[i, 'composition_expression']) \
+                and is_none_or_nan(sys_df.loc[i, 'meter_id']) \
+                and is_none_or_nan(sys_df.loc[i, 'source_key']):
                 # 如果meter_id是空打，而sourckey非空，为脏数据，可以ignore
 
                 node_id = self.hr.create_node(name=sys_df.loc[i, 'name_x'], 
@@ -182,7 +182,7 @@ class DataFlow(object):
 
         # data system which has data(kwh), defined as hierachy.node_datapoint and energy.energy_datapoint                
         for i in range(len(sys_df)):
-            if not np.isnan(sys_df.loc[i, 'meter_id']) \
+            if not is_none_or_nan(sys_df.loc[i, 'meter_id']) \
                 and (sys_df.loc[i, 'source_key'] is not None and len(sys_df.loc[i, 'source_key']) > 0):
 
                 meter_id = sys_df.loc[i, 'meter_id']
@@ -229,10 +229,18 @@ class DataFlow(object):
                         _energy_datapoint_id = None
                         _ref_id = None
 
-                    if _df2.shape[0] >= 1:       
-                        _ref_id = _df2.iloc[0]['id_x']
-                        _energy_datapoint_id = _df2.iloc[0]['id_y']
-                    
+                    if _df2.shape[0] >= 1:    
+                        # 当前这个system在energy_datapoint里边没找到记录，
+                        # 则取相同meterid和sourcekey的system对应的第一个energy_datapoint的记录   
+                        if is_none_or_nan(sys_df.iloc[i]['id_y']):
+                            _ref_id = _df2.iloc[0]['id_x']
+                            _energy_datapoint_id = _df2.iloc[0]['id_y']
+                        else:
+                            # 同一个meter，同一个sourckey在energy_datapoint里有可能存在多个记录
+                            _ref_id = sys_df.iloc[i]['id_x']
+                            _energy_datapoint_id = sys_df.iloc[i]['id_y']
+                        
+                        
 
                 # 创建新的NODE, DATAPOINT类型的node
                 node_id, node_ref_id = None, None                
@@ -274,11 +282,14 @@ class DataFlow(object):
                 #         sys_df.loc[row['index'], "node_type"] = 'DATAPOINT'       
                 #         sys_df.loc[row['index'], "node_id"] = node_id       
                 #         sys_df.loc[row['index'], "node_ref_id"] = node_ref_id  
-                sys_df.loc[i, "use_system_id"] = _ref_id
-                sys_df.loc[i, "use_datapoint_id"] = _energy_datapoint_id  
-                sys_df.loc[i, "node_type"] = 'DATAPOINT'       
-                sys_df.loc[i, "node_id"] = node_id       
-                sys_df.loc[i, "node_ref_id"] = node_ref_id  
+                    
+                # 更新
+                if _ref_id is not None:
+                    sys_df.loc[i, "use_system_id"] = _ref_id
+                    sys_df.loc[i, "use_datapoint_id"] = _energy_datapoint_id  
+                    sys_df.loc[i, "node_type"] = 'DATAPOINT'       
+                    sys_df.loc[i, "node_id"] = node_id       
+                    sys_df.loc[i, "node_ref_id"] = node_ref_id  
 
                 
                 if not is_none_or_nan(sys_df.loc[i, 'component_of_id']):
@@ -291,7 +302,7 @@ class DataFlow(object):
         # so defined as hierachy.node_datapoint and energy.energy_datapoint                
         pattern = re.compile(r"{id_(\d+)}")
         for i in range(len(sys_df)):
-            if not pd.isnull(sys_df.loc[i, 'parent_system_id']) \
+            if not is_none_or_nan(sys_df.loc[i, 'parent_system_id']) \
                 and not is_none_or_nan(sys_df.loc[i, 'composition_expression']) \
                 and '{' in sys_df.loc[i, 'composition_expression']:
                 # 更新composition_expression里边打id_xxx为'node_ref_id'
@@ -351,8 +362,8 @@ class DataFlow(object):
         # to make sure the expression {id_virtual_datapoint_ref_id_xxx} can be found at this time.
         pattern = re.compile(r"{id_(\d+)}")
         for i in range(len(sys_df)):
-            if not np.isnan(sys_df.loc[i, 'parent_system_id']) \
-                and sys_df.loc[i, 'composition_expression'] is not None \
+            if not is_none_or_nan(sys_df.loc[i, 'parent_system_id']) \
+                and not is_none_or_nan(sys_df.loc[i, 'composition_expression']) \
                 and sys_df.loc[i, "expression_replaced"] == 0:
                 # 更新composition_expression里边打id_xxx为'node_ref_id'
                 try:
@@ -364,7 +375,9 @@ class DataFlow(object):
 
         # 创建父子节点关系
         # 根据id_x, parent_system_id 关系，在hierarchy 的 relatives里边创建 父子关系        
-        print("--------------------------------")
+        # print("--------------------------------")
         self.hr.create_relations(sys_df, components_binding = self.components_binding)
+
+        # sys_df.to_csv(f"./output/sys_df_after.csv")
 
         

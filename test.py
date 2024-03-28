@@ -47,7 +47,7 @@ def main():
     dataFlow.create_nodes_and_datapoints(df, tenant.id.values[0])
     # export the df to csv file
     # the node_type is 'unknown' means they will not be in hierarchy tree
-    df.to_csv(f"./output/new_{code}.csv")
+  
         
     # print("====================== TenantTree XML ==========================")    
     tenantTree = hr.TenantTree(tenant.id.values[0],
