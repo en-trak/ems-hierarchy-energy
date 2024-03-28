@@ -89,6 +89,11 @@ class DataFlow(object):
         # print(result_df[:8])
 
         return result_df
+    
+    def LoadData(self, filename="./output/result_df.csv"):
+        df = pd.read_csv(filename, index_col=False)        
+        df = df.drop(['Unnamed: 0'], axis=1)
+        return df
 
     def replace_expression_id(self, df, i):
         """
@@ -102,15 +107,12 @@ class DataFlow(object):
         """        
         row = df.iloc[i]
         composition_expression = row['composition_expression']
-        print("-------------A---------------")
-        print(f"c1: {composition_expression}")
+
         for match in re.finditer(r'{id_(\d+)}', composition_expression):
             id_xxx = match.group(1)
             node_ref_id = df.loc[df['id_x'] == int(id_xxx), 'node_ref_id'].values[0]
             composition_expression = composition_expression.replace(match.group(0), "{id_"+str(node_ref_id)+"}")
-        df.loc[i, 'composition_expression'] = composition_expression
-        print(f"c2: {composition_expression}")
-        print("-------------B---------------")
+        df.loc[i, 'composition_expression'] = composition_expression        
 
         return df
 
@@ -220,15 +222,17 @@ class DataFlow(object):
                     # _df[(~np.isnan(_df['id_y']))]
                     # 或则用pd.isnull(_df['id_y'])
 
-                    _df2 = _df[(~pd.isnull(_df['id_x'])) & (~pd.isnull(_df['id_y']))]
-                    if _df2.shape[0] <= 0:
+                    _df2 = _df[(~pd.isnull(_df['id_x'])) & (~pd.isnull(_df['id_y']))]            
+
+                    if _df2.shape[0] == 0:
                         print(f"meter:[{meter_id}] source_key:[{source_key}] dosnt find right datapoint which has datapoint.id")
                         _energy_datapoint_id = None
                         _ref_id = None
-                    else:
+
+                    if _df2.shape[0] >= 1:       
                         _ref_id = _df2.iloc[0]['id_x']
                         _energy_datapoint_id = _df2.iloc[0]['id_y']
-
+                    
 
                 # 创建新的NODE, DATAPOINT类型的node
                 node_id, node_ref_id = None, None                
@@ -255,21 +259,26 @@ class DataFlow(object):
 
                 # 使用同样meterid, source_key的system，全部更新,
                 # 都使用同一个ref_id
-                if _ref_id is not None:
-                    _df = sys_df[(sys_df['meter_id']==meter_id) & \
-                                    (sys_df['source_key']==source_key) & \
-                                        (pd.isnull(sys_df['use_system_id']))]
+                # if _ref_id is not None:
+                #     _df = sys_df[(sys_df['meter_id']==meter_id) & \
+                #                     (sys_df['source_key']==source_key) & \
+                #                         (pd.isnull(sys_df['use_system_id']))]
                     
-                    for idx in range(len(_df)):
-                        row = _df.iloc[idx]                        
-                        sys_df.loc[row['index'], "use_system_id"] = _ref_id
-                        sys_df.loc[row['index'], "use_datapoint_id"] = _energy_datapoint_id
-                        sys_df.loc[row['index'], "ref_id"] = _ref_id
-                        sys_df.loc[row['index'], "id_y"] = _energy_datapoint_id
+                #     for idx in range(len(_df)):
+                #         row = _df.iloc[idx]                        
+                #         sys_df.loc[row['index'], "use_system_id"] = _ref_id
+                #         sys_df.loc[row['index'], "use_datapoint_id"] = _energy_datapoint_id
+                #         sys_df.loc[row['index'], "ref_id"] = _ref_id
+                #         sys_df.loc[row['index'], "id_y"] = _energy_datapoint_id
 
-                        sys_df.loc[row['index'], "node_type"] = 'DATAPOINT'       
-                        sys_df.loc[row['index'], "node_id"] = node_id       
-                        sys_df.loc[row['index'], "node_ref_id"] = node_ref_id  
+                #         sys_df.loc[row['index'], "node_type"] = 'DATAPOINT'       
+                #         sys_df.loc[row['index'], "node_id"] = node_id       
+                #         sys_df.loc[row['index'], "node_ref_id"] = node_ref_id  
+                sys_df.loc[i, "use_system_id"] = _ref_id
+                sys_df.loc[i, "use_datapoint_id"] = _energy_datapoint_id  
+                sys_df.loc[i, "node_type"] = 'DATAPOINT'       
+                sys_df.loc[i, "node_id"] = node_id       
+                sys_df.loc[i, "node_ref_id"] = node_ref_id  
 
                 
                 if not is_none_or_nan(sys_df.loc[i, 'component_of_id']):
@@ -283,7 +292,7 @@ class DataFlow(object):
         pattern = re.compile(r"{id_(\d+)}")
         for i in range(len(sys_df)):
             if not pd.isnull(sys_df.loc[i, 'parent_system_id']) \
-                and sys_df.loc[i, 'composition_expression'] is not None \
+                and not is_none_or_nan(sys_df.loc[i, 'composition_expression']) \
                 and '{' in sys_df.loc[i, 'composition_expression']:
                 # 更新composition_expression里边打id_xxx为'node_ref_id'
                 try:

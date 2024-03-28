@@ -42,18 +42,19 @@ def main():
     
     # generate tenant tree in dataflow
     dataFlow = DataFlow(code, components_binding)
-    df = dataFlow.PreparingData()
+    # df = dataFlow.PreparingData()
+    df = dataFlow.LoadData()
     dataFlow.create_nodes_and_datapoints(df, tenant.id.values[0])
     # export the df to csv file
     # the node_type is 'unknown' means they will not be in hierarchy tree
-    df.to_csv(f"./output/new_{code}.csv")
+    df.to_csv(f"./output/l_new_{code}.csv")
         
     # print("====================== TenantTree XML ==========================")    
     tenantTree = hr.TenantTree(tenant.id.values[0],
                                tenant.name.values[0],
                                tenant.company_code.values[0])
     # # print(tenantTree)
-    hr.SaveToXml(tenantTree, f"./output/new_{code}.xml")   
+    hr.SaveToXml(tenantTree, f"./output/l_new_{code}.xml")   
 
 
     host=readOption("databases.ems.host")
@@ -71,7 +72,7 @@ def main():
                                      company.name.values[0],
                                      company.code.values[0])
     
-    ems.SaveToXml(companyTree, f"./output/{code}_system.xml")
+    ems.SaveToXml(companyTree, f"./output/l_{code}_system.xml")
     # print(companyTree)
     
     

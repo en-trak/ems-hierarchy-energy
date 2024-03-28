@@ -328,6 +328,8 @@ class Hierarchy:
                     continue
                 parent_id = parent['node_id'].values[0]
                 parent_type = parent['node_type'].values[0]
+                if parent_type == 'unknown':
+                    continue
                 parent_type_level = NODE_TYPE_LEVEL[parent_type]
                 if child_type_level > parent_type_level:
                     error_info = f"Error: child_type:{child_type} child_id:[{child_id}] should under parent_type:{parent_type} parent_id:[{parent_id}]" 
