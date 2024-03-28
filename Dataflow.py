@@ -288,7 +288,7 @@ class DataFlow(object):
         for i in range(len(sys_df)):
             if not is_none_or_nan(sys_df.loc[i, 'parent_system_id']) \
                 and not is_none_or_nan(sys_df.loc[i, 'composition_expression']) \
-                and '{' in sys_df.loc[i, 'composition_expression']:
+                and '{' in str(sys_df.loc[i, 'composition_expression']):
                 # 更新composition_expression里边打id_xxx为'node_ref_id'
                 try:
                     self.replace_expression_id(sys_df, i)
