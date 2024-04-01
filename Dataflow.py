@@ -8,7 +8,7 @@ from Organization import Organization
 from City import City
 import xml.etree.ElementTree as ET
 import re
-from common import zeroUUID, is_none_or_nan, readOption
+from common import zeroUUID, is_none_or_nan, readOption, run_grpc, STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC
 
 class DataFlow(object):
 
@@ -327,7 +327,38 @@ class DataFlow(object):
                         print(f"not found virtual system:[{sys_df.loc[i, 'id_x']}] in energy.datapoint")                   
                 else:
                     # 更新已经存在的virtual_datapoint里边的expression
-                    self.energy.update_virtual_datapoint(energy_datapint_id, composition_expression)    
+                    self.energy.update_virtual_datapoint(energy_datapint_id, composition_expression)  
+                    # 请求energy serice to update the relations of virtual_datapoint
+                    def RequestUpdateRelations(kwargs):
+                        from . import energy_virtual_datapoint as vdpGrpcPb2                        
+                        stub = kwargs['stub']
+                        vdp_df = self.energy.getVirtualDataPoint(energy_datapint_id, columns=["id", "status", "is_solar"])
+                        
+                        id_of_virtual_datapoint = vdp_df['id'].iloc[0]
+                        # take the name of system as virtual datapoint name, maybe it's not equal to vdp_df['name'].iloc[0], use this name from ems
+                        name = sys_df.loc[i, "name_x"] 
+                        status = vdp_df['status'].iloc[0] # reference to VirtualDatapointStatus defined in energy_virtual_datapoint.proto
+                        is_solar = vdp_df['is_solar'].iloc[0]
+                        datapoint_id = energy_datapint_id
+                        ref_id = ref_id
+                        complex = 0 # reference to VirtualDatapointStatus defined in energy_virtual_datapoint.proto
+
+                        response = stub.Update(vdpGrpcPb2.VirtualDatapoint(id = id_of_virtual_datapoint, 
+                                                                           tenant_id = tenant_id,
+                                                                           name = name,
+                                                                           expression = composition_expression,
+                                                                           status = status,
+                                                                           is_solar  =is_solar,
+                                                                           datapoint_id = datapoint_id,
+                                                                           ref_id = ref_id,
+                                                                           complex = complex
+                                                                           ))
+                        del vdp_df
+
+                        return response
+                    
+                    # grpc request for updating energy_virtual_relationship
+                    run_grpc(STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, RequestUpdateRelations )  
 
                 if sys_df.loc[i, "node_ref_id"] =='unknown':                
                     node_id, node_ref_id = self.hr.create_node(node_type='DATAPOINT', 

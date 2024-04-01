@@ -16,3 +16,6 @@ $ Run python test.py for testing or deploying
 
 # ./output
 there are two sites xml for comparing result
+
+# generate grpc
+python -m grpc_tools.protoc -I . --python_out=. --grpc_python_out=. ./energy_virtual_datapoint.proto

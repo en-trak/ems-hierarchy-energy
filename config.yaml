@@ -38,3 +38,6 @@ databases:
 code: "demohk"    
 components_binding: False
 
+grpc:
+  energy:
+    host: "energy-grpc:50051"

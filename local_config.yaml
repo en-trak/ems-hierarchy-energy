@@ -35,7 +35,12 @@ databases:
     username: city
     password: city
 
+
 code: "demohk"    
 components_binding: False
+
+grpc:
+  energy:
+    host: "localhost:50051"
 
 

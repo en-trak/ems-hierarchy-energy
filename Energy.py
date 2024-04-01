@@ -150,6 +150,14 @@ class Energy:
         """
         with self.engine.connect() as connection:
             connection.execute(sql)
+
+    def getVirtualDataPoint(self, datapoint_id,  columns = ["id", "tenant_id", "datapoint_id", "name", "expression", "status", "is_solar"]):        
+        sql = f'''SELECT id, tenant_id, datapoint_id, "name", "expression", status, is_solar
+            FROM energy_virtual_datapoint  where datapoint_id = '{datapoint_id}'  '''         
+        dataDF = pd.read_sql_query(sql, self.engine)
+        dataDF['id'] = dataDF['id'].astype(str)
+
+        return dataDF[columns]
     
     
     def create_new_meter(self, ref_id, name, 

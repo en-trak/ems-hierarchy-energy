@@ -1,0 +1,65 @@
+syntax = "proto3";
+package sbos.energy;
+
+option go_package = "github.com/en-trak/protobuf/sbos/energy";
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+service EnergyVirtualDatapoint {
+  rpc Create (VirtualDatapoint) returns (CreateVirtualDatapointResponse);
+  rpc Update (VirtualDatapoint) returns (google.protobuf.Empty);
+  rpc QueryVirtualDatapoint (QueryVirtualDatapointRequest) returns (stream VirtualDatapoint);
+  rpc Get (GetVirtualDatapointRequest) returns (VirtualDatapoint);
+  rpc TestFormula (TestFormulaRequest) returns (TestFormulaResponse);
+  rpc Delete (DeleteVirtualDatapointRequest) returns (google.protobuf.Empty);
+}
+
+enum VirtualDatapointStatus {
+  VDS_DEFAULT = 0;
+  VDS_DISABLE = 1;
+  VDS_ENABLE = 2;
+}
+
+message VirtualDatapoint {
+  bytes id = 1;
+  bytes tenant_id = 2;
+  string name = 3;
+  string expression = 4;
+  VirtualDatapointStatus status = 5;
+  google.protobuf.BoolValue is_solar = 6;
+  bytes datapoint_id = 7;
+  int64 ref_id = 8;
+  VirtualDatapointStatus complex = 9;
+}
+
+message CreateVirtualDatapointResponse {
+  bytes id = 1;
+}
+
+message QueryVirtualDatapointRequest {
+  bytes id = 1;
+  bytes tenant_id = 2;
+  string name = 3;
+  string expression = 4;
+  VirtualDatapointStatus status = 5;
+  int64 limit = 6;
+  int64 offset = 7;
+}
+
+message GetVirtualDatapointRequest {
+  bytes id = 1;
+}
+
+message DeleteVirtualDatapointRequest {
+  bytes id = 1;
+}
+
+message TestFormulaRequest {
+  string expression = 1;
+  VirtualDatapointStatus complex = 2;
+}
+
+message TestFormulaResponse {
+  string expression = 1;
+  string result = 2;
+}

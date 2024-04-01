@@ -2,6 +2,11 @@ import uuid
 import numpy as np
 import pandas as pd
 import yaml
+import grpc
+from . import energy_virtual_datapoint_pb2_grpc as vdpGrpc
+from google.protobuf.json_format import MessageToDict
+
+STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC = "energy_virtual_datapoint_grpc"
 
 def zeroUUID():
   """
@@ -101,3 +106,32 @@ def LoadIniDataBase(filename):
     print(f"Error: File '{filename}' not found.")
   except KeyError as e:
     print(f"Error: Missing key '{e}' in the configuration file.")
+
+
+def run_grpc(self, stub, grpcFunction, **kwargs):
+  response = None
+  try:               
+      host = readOption("grpc.energy.host")            
+      
+      if stub == STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC:
+        with grpc.insecure_channel(host) as channel:
+          stub = vdpGrpc.EnergyVirtualDatapointStub(channel)
+          kwargs["stub"] = stub
+          response = grpcFunction(kwargs)
+          # response = MessageToDict(response)
+          print("virtual datapoint update response: " + response)        
+  except grpc.RpcError as e:
+      # this is grpc error
+      if e.code() == grpc.StatusCode.CANCELLED:
+          print("response grpc-error 1:{}".format(str(e)), flush=True)                        
+      elif e.code() == grpc.StatusCode.UNAVAILABLE and 'Connection reset by peer' in e.details():
+          print("response grpc-error 2:{}".format(str(e)), flush=True)             
+      else:
+          print("response grpc-error 3:{}".format(str(e)), flush=True)
+
+      return None
+  except Exception as e:                    
+      print("response e-error:{}".format(str(e)), flush=True)
+      return None
+
+  return response
