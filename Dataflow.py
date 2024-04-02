@@ -327,7 +327,7 @@ class DataFlow(object):
                         print(f"not found virtual system:[{sys_df.loc[i, 'id_x']}] in energy.datapoint")                   
                 else:
                     # 更新已经存在的virtual_datapoint里边的expression
-                    self.energy.update_virtual_datapoint(energy_datapint_id, composition_expression)  
+                    # self.energy.update_virtual_datapoint(energy_datapint_id, composition_expression)  
                     # 请求energy serice to update the relations of virtual_datapoint
                     def RequestUpdateRelations(kwargs):
                         from . import energy_virtual_datapoint as vdpGrpcPb2                        
