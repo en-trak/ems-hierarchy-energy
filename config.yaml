@@ -40,4 +40,6 @@ components_binding: False
 
 grpc:
   energy:
-    host: "energy-grpc:50051"
+    # host: "energy-grpc:50051"
+    # kubectl port-forward pod/energy-grpc-5cd96d65cd-2zzkl 50055:50051
+    host: "localhost:50055"

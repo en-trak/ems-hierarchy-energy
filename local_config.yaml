@@ -36,11 +36,11 @@ databases:
     password: city
 
 
-code: "demohk"    
+code: "cdnis"    
 components_binding: False
 
 grpc:
   energy:
-    host: "localhost:50051"
+    host: "localhost:50055"
 
 

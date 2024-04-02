@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import yaml
 import grpc
-from . import energy_virtual_datapoint_pb2_grpc as vdpGrpc
+import energy_virtual_datapoint_pb2_grpc as vdpGrpc
 from google.protobuf.json_format import MessageToDict
 
 STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC = "energy_virtual_datapoint_grpc"
@@ -108,7 +108,7 @@ def LoadIniDataBase(filename):
     print(f"Error: Missing key '{e}' in the configuration file.")
 
 
-def run_grpc(self, stub, grpcFunction, **kwargs):
+def run_grpc(stub, grpcFunction, **kwargs):
   response = None
   try:               
       host = readOption("grpc.energy.host")            

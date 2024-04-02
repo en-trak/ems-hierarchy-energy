@@ -9,6 +9,8 @@ from City import City
 import xml.etree.ElementTree as ET
 import re
 from common import zeroUUID, is_none_or_nan, readOption, run_grpc, STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC
+import energy_virtual_datapoint_pb2 as vdpGrpcPb2 
+
 
 class DataFlow(object):
 
@@ -107,12 +109,15 @@ class DataFlow(object):
         """        
         row = df.iloc[i]
         composition_expression = row['composition_expression']
+        print("Replace expression A: {}".format(composition_expression))
 
         for match in re.finditer(r'{id_(\d+)}', composition_expression):
             id_xxx = match.group(1)
             node_ref_id = df.loc[df['id_x'] == int(id_xxx), 'node_ref_id'].values[0]
             composition_expression = composition_expression.replace(match.group(0), "{id_"+str(node_ref_id)+"}")
         df.loc[i, 'composition_expression'] = composition_expression        
+
+        print("Replace expression with B: {}".format(composition_expression))
 
         return df
 
@@ -327,10 +332,9 @@ class DataFlow(object):
                         print(f"not found virtual system:[{sys_df.loc[i, 'id_x']}] in energy.datapoint")                   
                 else:
                     # 更新已经存在的virtual_datapoint里边的expression
-                    # self.energy.update_virtual_datapoint(energy_datapint_id, composition_expression)  
+                    self.energy.update_virtual_datapoint(energy_datapint_id, composition_expression)  
                     # 请求energy serice to update the relations of virtual_datapoint
                     def RequestUpdateRelations(kwargs):
-                        from . import energy_virtual_datapoint as vdpGrpcPb2                        
                         stub = kwargs['stub']
                         vdp_df = self.energy.getVirtualDataPoint(energy_datapint_id, columns=["id", "status", "is_solar"])
                         
@@ -358,7 +362,7 @@ class DataFlow(object):
                         return response
                     
                     # grpc request for updating energy_virtual_relationship
-                    run_grpc(STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, RequestUpdateRelations )  
+                    run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, grpcFunction=RequestUpdateRelations )  
 
                 if sys_df.loc[i, "node_ref_id"] =='unknown':                
                     node_id, node_ref_id = self.hr.create_node(node_type='DATAPOINT', 
