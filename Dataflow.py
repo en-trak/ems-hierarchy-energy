@@ -338,23 +338,27 @@ class DataFlow(object):
                         stub = kwargs['stub']
                         vdp_df = self.energy.getVirtualDataPoint(energy_datapint_id, columns=["id", "status", "is_solar"])
                         
-                        id_of_virtual_datapoint = vdp_df['id'].iloc[0]
+                        id_of_virtual_datapoint = vdp_df['id'].iloc[0]                                                
                         # take the name of system as virtual datapoint name, maybe it's not equal to vdp_df['name'].iloc[0], use this name from ems
                         name = sys_df.loc[i, "name_x"] 
                         status = vdp_df['status'].iloc[0] # reference to VirtualDatapointStatus defined in energy_virtual_datapoint.proto
                         is_solar = vdp_df['is_solar'].iloc[0]
-                        datapoint_id = energy_datapint_id
-                        ref_id = ref_id
+                        datapoint_id = energy_datapint_id                        
+                        ref_id = sys_df.loc[i, "ref_id"]
                         complex = 0 # reference to VirtualDatapointStatus defined in energy_virtual_datapoint.proto
 
-                        response = stub.Update(vdpGrpcPb2.VirtualDatapoint(id = id_of_virtual_datapoint, 
-                                                                           tenant_id = tenant_id,
+                        import google.protobuf.wrappers_pb2 as wrappers
+                        protobuf_bool = wrappers.BoolValue()
+                        protobuf_bool.value = is_solar
+
+                        response = stub.Update(vdpGrpcPb2.VirtualDatapoint(id = id_of_virtual_datapoint.encode(), 
+                                                                           tenant_id = tenant_id.encode(),
                                                                            name = name,
                                                                            expression = composition_expression,
                                                                            status = status,
-                                                                           is_solar  =is_solar,
-                                                                           datapoint_id = datapoint_id,
-                                                                           ref_id = ref_id,
+                                                                           is_solar = protobuf_bool,
+                                                                           datapoint_id = datapoint_id.encode(),
+                                                                           ref_id = int(ref_id),
                                                                            complex = complex
                                                                            ))
                         del vdp_df
