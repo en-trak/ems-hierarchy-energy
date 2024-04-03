@@ -246,6 +246,8 @@ class DataFlow(object):
                             # 同一个meter，同一个sourckey在energy_datapoint里有可能存在多个记录
                             _ref_id = sys_df.iloc[i]['id_x']
                             _energy_datapoint_id = sys_df.iloc[i]['id_y']
+
+                    del _df2
                         
                         
 
@@ -255,13 +257,17 @@ class DataFlow(object):
                     data_id = _energy_datapoint_id #sys_df.loc[i, "id_y"]                    
 
                     try:
+                        _source_key = sys_df.iloc[i]['source_key']
+                        _meter_id = sys_df.iloc[i]['meter_id']
                         node_id, node_ref_id = self.hr.create_node(node_type='DATAPOINT', 
                                                                data_type="ENERGY", 
                                                                name=sys_df.loc[i, 'name_x'],
                                                             #    desc = f"cid {sys_df.loc[i, 'company_id']} sid {sys_df.loc[i, 'id_x']}",
                                                             # 如果是多个systems（同一个meterID，相同sourckey），虽然systemID不同，现在统一使用其中一个systemID
                                                             # 这样hierarchy.node_data_points.id 跟 energy.enerngy_datapoint.id就是1对1关系
-                                                               desc = f"cid {sys_df.loc[i, 'company_id']} sid {_ref_id}",
+                                                            # 实际情况是能找到多个systems都有enenrgy_datapoints记录，所以如果有此记录，则用它，没有的记录的，才取
+                                                            # 第一个记录。另外多个这样的systems在node_data_points里边只有一个记录，既唯一对应node_data_points.ref_id
+                                                               desc = f"cid {sys_df.loc[i, 'company_id']} mid {_meter_id} sk: {_source_key}",
                                                                data_id = data_id )         
                     except Exception as e:
                         print(f"create_node DATAPOINT err: {str(e)}")         
@@ -333,7 +339,7 @@ class DataFlow(object):
                 else:
                     # 更新已经存在的virtual_datapoint里边的expression
                     # self.energy.update_virtual_datapoint(energy_datapint_id, composition_expression)  
-                    
+
                     # 请求energy serice to update the relations of virtual_datapoint
                     def RequestUpdateRelations(kwargs):
                         stub = kwargs['stub']
@@ -369,11 +375,11 @@ class DataFlow(object):
                     # grpc request for updating energy_virtual_relationship
                     run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, grpcFunction=RequestUpdateRelations )  
 
-                if sys_df.loc[i, "node_ref_id"] =='unknown':                
+                if sys_df.loc[i, "node_ref_id"] =='unknown':                             
                     node_id, node_ref_id = self.hr.create_node(node_type='DATAPOINT', 
                                                                data_type="VIRTUALDATAPOINT", 
                                                                name=sys_df.loc[i, 'name_x'], 
-                                                               desc = f"cid {sys_df.loc[i, 'company_id']} sid {sys_df.loc[i, 'id_x']}",
+                                                               desc = f"cid {sys_df.loc[i, 'company_id']} sid {sys_df.loc[i, 'id_x']}",                                                            
                                                                data_id=energy_datapint_id)                
                     sys_df.loc[i, "node_type"] = 'DATAPOINT'
                     sys_df.loc[i, "node_id"] = node_id

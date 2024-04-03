@@ -30,7 +30,7 @@ class Hierarchy:
         dataDF = pd.read_sql_query(sql, self.engine)
         dataDF['id'] = dataDF['id'].astype(str)
         
-        return dataDF
+        return dataDF["id"].iloc[0]
 
     def nodeDataPoint(self):        
         sql = f'''SELECT id, name, data_type, data_id from node_data_points'''         
@@ -448,12 +448,16 @@ class Hierarchy:
                         if toDelete:
                             print(f"Warrning component systme, node type: {node_type} desc: {desc} inserted after remove the old data in node_data_points")
                     except Exception:
-                        # 如果插入失败，就删除这个节点，从新再插入一次
-                        # 因为node_data_points包含component这种类型的system，而它在关系表中不会出现
-                        # 所以导致purge树的时候，不会删除它，只有在这里删除它，并重现创建它                        
+                        # 如果插入失败，说明已经有enerngy_datapoin存在了，
+                        # 1: 直接提取存对应的node_data_points.id 和 node_data_points.ref_id
+                        # 2： 因为node_data_points包含component这种类型的system，而它在关系表中不会出现
+                        # 所以导致purge树的时候，不会删除它，只有在这里删除它，并重现创建它
+                                                
                         toDelete = True                      
 
                 if toDelete:
+                    # 必须node_data_points.id 跟 enerngy_datapoints.id是1 对 1 关系
+                    # 否在这个逻辑会有问题
                     node_datapoint_id = self.nodeDataPointByDataID(data_id=data_id)
                     self.purgeNodeDataPoint(id = node_datapoint_id)
                     
