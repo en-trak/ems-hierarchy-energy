@@ -25,6 +25,13 @@ class Hierarchy:
         
         self.energy_dp = energy.dataPoint()
 
+    def nodeDataPointByDataID(self, data_id = None):        
+        sql = f'''SELECT id from node_data_points where data_id = '{data_id}' ''' 
+        dataDF = pd.read_sql_query(sql, self.engine)
+        dataDF['id'] = dataDF['id'].astype(str)
+        
+        return dataDF
+
     def nodeDataPoint(self):        
         sql = f'''SELECT id, name, data_type, data_id from node_data_points'''         
         dataDF = pd.read_sql_query(sql, self.engine)
@@ -422,7 +429,7 @@ class Hierarchy:
                 '''            
         }
 
-        sql = mapSqlInsert[node_type]
+        insert_sql = mapSqlInsert[node_type]
         # print(f"=====================[{node_type}]===========================")
         # 执行SQL语句并获取新创建数据点的ID
         if node_type == "DATAPOINT":
@@ -431,20 +438,42 @@ class Hierarchy:
             if dataDF.shape[0] > 0 and not pd.isnull(dataDF['id'].iloc[0]):
                 return dataDF['id'].iloc[0], dataDF['ref_id'].iloc[0]        
 
-            with self.engine.connect() as connection:
-                datapoint_id, ref_id = connection.execute(sql).fetchone()[:2]
+            toDelete = False
+            quit = False
+            while not quit:
+                with self.engine.connect() as connection:                    
+                    try:                        
+                        node_datapoint_id, ref_id = connection.execute(insert_sql).fetchone()[:2]
+                        quit = True                        
+                        if toDelete:
+                            print(f"Warrning component systme, node type: {node_type} desc: {desc} inserted after remove the old data in node_data_points")
+                    except Exception:
+                        # 如果插入失败，就删除这个节点，从新再插入一次
+                        # 因为node_data_points包含component这种类型的system，而它在关系表中不会出现
+                        # 所以导致purge树的时候，不会删除它，只有在这里删除它，并重现创建它                        
+                        toDelete = True                      
 
-            return datapoint_id, ref_id
-        else:
+                if toDelete:
+                    node_datapoint_id = self.nodeDataPointByDataID(data_id=data_id)
+                    self.purgeNodeDataPoint(id = node_datapoint_id)
+                    
+
+            return node_datapoint_id, ref_id
+        else:   
             # print(f"---- create node: {node_type}, sql={sql} ----")            
             dataDF = pd.read_sql_query(mapSqlCheck[node_type], self.engine)
             if dataDF.shape[0] > 0 and not pd.isnull(dataDF['id'].iloc[0]):
-                return dataDF['id'].iloc[0]            
+                return dataDF['id'].iloc[0]                        
             
             with self.engine.connect() as connection:
-                datapoint_id = connection.execute(sql).fetchone()[0]
+                try:
+                    node_datapoint_id = connection.execute(insert_sql).fetchone()[0]
+                except Exception:
+                    error_info = f"Error node type: {node_type} desc: {desc} insert failed!!!"
+                    raise ValueError(error_info)
+            
 
-            return datapoint_id
+            return node_datapoint_id
 
 
         
