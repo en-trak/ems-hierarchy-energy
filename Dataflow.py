@@ -359,7 +359,12 @@ class DataFlow(object):
 
                         print(f"systemID:{sid} energy_datapint_id:[{edid}] id_of_virtual_datapoint:[{id_of_virtual_datapoint}]")
                         
+                        id_of_virtual_datapoint = '16c85b2f-a614-45fb-91ff-6354c88e183b'
+                        
                         id_vd_bytes = id_of_virtual_datapoint.encode('utf-8')
+
+                        print(f"--- test: id_of_virtual_datapoint [{id_of_virtual_datapoint}] bytes: {id_vd_bytes}")
+
                         # take the name of system as virtual datapoint name, maybe it's not equal to vdp_df['name'].iloc[0], use this name from ems
                         name = sys_df.loc[i, "name_x"] 
                         status = vdp_df['status'].iloc[0] # reference to VirtualDatapointStatus defined in energy_virtual_datapoint.proto
