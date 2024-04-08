@@ -318,7 +318,7 @@ class DataFlow(object):
                 sys_df.loc[i, "expression_replaced"] = 1                
 
                 # create new datapoint
-                if np.isnan(ref_id):
+                if np.is_none_or_nan(ref_id):
                     if force_new:
                         ref_id = sys_df.loc[i, 'id_x']
                         name = sys_df.loc[i, "name_x"]                    
@@ -337,6 +337,10 @@ class DataFlow(object):
                     else:
                         print(f"not found virtual system:[{sys_df.loc[i, 'id_x']}] in energy.datapoint")                   
                 else:
+                    if is_none_or_nan(energy_datapint_id):
+                        print(f"not found energy_datapint_id for this virtual systemID:{sys_df.loc[i, 'id_x']}")
+                        return None
+
                     # 更新已经存在的virtual_datapoint里边的expression
                     # self.energy.update_virtual_datapoint(energy_datapint_id, composition_expression)  
 
@@ -345,7 +349,12 @@ class DataFlow(object):
                         stub = kwargs['stub']
                         vdp_df = self.energy.getVirtualDataPoint(energy_datapint_id, columns=["id", "status", "is_solar"])
                         
-                        id_of_virtual_datapoint = vdp_df['id'].iloc[0]                                                
+                        id_of_virtual_datapoint = vdp_df['id'].iloc[0]    
+                        if is_none_or_nan(id_of_virtual_datapoint):
+                            print(f"systemID:{sys_df.loc[i, 'id_x']} energy_datapint_id:[{sys_df.loc[i, "id_y"]}] did not get virtual_datapoint id!!!")
+                            del vdp_df
+                            return None
+
                         # take the name of system as virtual datapoint name, maybe it's not equal to vdp_df['name'].iloc[0], use this name from ems
                         name = sys_df.loc[i, "name_x"] 
                         status = vdp_df['status'].iloc[0] # reference to VirtualDatapointStatus defined in energy_virtual_datapoint.proto

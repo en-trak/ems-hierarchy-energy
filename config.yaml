@@ -35,7 +35,7 @@ databases:
     username: city
     password: rXGajaRh4haudHiwBVFR
 
-code: "demohk"    
+code: "cdnis"    
 components_binding: False
 
 grpc:
