@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 import re
 from common import zeroUUID, is_none_or_nan, readOption, run_grpc, STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC
 import energy_virtual_datapoint_pb2 as vdpGrpcPb2 
-
+import uuid
 
 class DataFlow(object):
 
@@ -318,7 +318,7 @@ class DataFlow(object):
                 sys_df.loc[i, "expression_replaced"] = 1                
 
                 # create new datapoint
-                if np.is_none_or_nan(ref_id):
+                if is_none_or_nan(ref_id):                
                     if force_new:
                         ref_id = sys_df.loc[i, 'id_x']
                         name = sys_df.loc[i, "name_x"]                    
@@ -349,12 +349,17 @@ class DataFlow(object):
                         stub = kwargs['stub']
                         vdp_df = self.energy.getVirtualDataPoint(energy_datapint_id, columns=["id", "status", "is_solar"])
                         
-                        id_of_virtual_datapoint = vdp_df['id'].iloc[0]    
-                        if is_none_or_nan(id_of_virtual_datapoint):
-                            print(f"systemID:{sys_df.loc[i, 'id_x']} energy_datapint_id:[{sys_df.loc[i, "id_y"]}] did not get virtual_datapoint id!!!")
+                        id_of_virtual_datapoint = str(vdp_df['id'].iloc[0])
+                        edid = sys_df.loc[i, "id_y"]
+                        sid = sys_df.loc[i, 'id_x']
+                        if is_none_or_nan(id_of_virtual_datapoint):                            
+                            print(f"Warrning: systemID:{sid} energy_datapint_id:[{edid}] did not get virtual_datapoint id!!!")
                             del vdp_df
                             return None
 
+                        print(f"systemID:{sid} energy_datapint_id:[{edid}] id_of_virtual_datapoint:[{id_of_virtual_datapoint}]")
+                        
+                        id_vd_bytes = id_of_virtual_datapoint.encode('utf-8')
                         # take the name of system as virtual datapoint name, maybe it's not equal to vdp_df['name'].iloc[0], use this name from ems
                         name = sys_df.loc[i, "name_x"] 
                         status = vdp_df['status'].iloc[0] # reference to VirtualDatapointStatus defined in energy_virtual_datapoint.proto
@@ -367,7 +372,7 @@ class DataFlow(object):
                         protobuf_bool = wrappers.BoolValue()
                         protobuf_bool.value = is_solar
 
-                        response = stub.Update(vdpGrpcPb2.VirtualDatapoint(id = id_of_virtual_datapoint.encode(), 
+                        response = stub.Update(vdpGrpcPb2.VirtualDatapoint(id = id_vd_bytes, 
                                                                            tenant_id = tenant_id.encode(),
                                                                            name = name,
                                                                            expression = composition_expression,
