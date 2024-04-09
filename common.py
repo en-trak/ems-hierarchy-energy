@@ -5,31 +5,9 @@ import yaml
 import grpc
 import energy_virtual_datapoint_pb2_grpc as vdpGrpc
 from google.protobuf.json_format import MessageToDict
-
-STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC = "energy_virtual_datapoint_grpc"
-
-def zeroUUID():
-  """
-  生成一个全是 0 的 UUID。
-
-  Returns:
-    一个全是 0 的 UUID。
-  """
-
-  # 创建一个长度为16的bytes对象，每个字节都是0
-  zero_bytes = b'\x00' * 16
-
-  # 将bytes对象转换为UUID对象
-  zero_uuid = uuid.UUID(bytes=zero_bytes)
-
-  # print(zero_uuid)  # 输出: 00000000-0000-0000-0000-000000000000
-
-  return zero_uuid
-
-def is_none_or_nan(value):
-  return value is None or pd.isnull(value)
-
-
+from configparser import ConfigParser
+import uuid
+import logging
 import yaml
 
 def readOption(options='database.db1.host', config_path='config.yaml'):
@@ -57,21 +35,54 @@ def readOption(options='database.db1.host', config_path='config.yaml'):
           return None
       return current_level
   except FileNotFoundError:
-    print(f"Error: YAML configuration file not found at {config_path}")
+    logger.error(f"Error: YAML configuration file not found at {config_path}")
   except yaml.YAMLError as e:
-    print(f"Error: parsing YAML configuration file: {e}")
+    logger.error(f"Error: parsing YAML configuration file: {e}")
   return None
 
-# Example usage
-option_value = readOption()
-if option_value:
-  print(f"Option value: {option_value}")
-else:
-  print("Option not found in the simulated configuration.")
+code = readOption("code")
+# Configure logging to write to a file named "xxx.log"
+logging.basicConfig(filename=f"{code}.log", level=logging.DEBUG)
+
+# Create a logger for your application
+logger = logging.getLogger(__name__)
 
 
+STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC = "energy_virtual_datapoint_grpc"
 
-from configparser import ConfigParser
+def zeroUUID():
+  """
+  生成一个全是 0 的 UUID。
+
+  Returns:
+    一个全是 0 的 UUID。
+  """
+
+  # 创建一个长度为16的bytes对象，每个字节都是0
+  zero_bytes = b'\x00' * 16
+
+  # 将bytes对象转换为UUID对象
+  zero_uuid = uuid.UUID(bytes=zero_bytes)
+
+  # logger.info(zero_uuid)  # 输出: 00000000-0000-0000-0000-000000000000
+
+  return zero_uuid
+
+def is_none_or_nan(value):
+  return value == 'nan' or value is None or pd.isnull(value)
+
+def big_endian_uuid(uuid_str):
+    # Convert string to UUID object
+    uuid_instance = uuid.UUID(uuid_str)
+
+    # Get UUID bytes (native order)
+    uuid_bytes = uuid_instance.bytes
+
+    big_endian_bytes = []
+    for i in range(16):
+        big_endian_bytes.append(uuid_bytes[15 - i])
+    
+    return bytes(big_endian_bytes)
 
 def LoadIniDataBase(filename):
   # # Path to your configuration file
@@ -95,17 +106,17 @@ def LoadIniDataBase(filename):
     database_name = database["database_name"]
     
     # Print the configuration details (modify for your use case)
-    print(f"Database connection details:")
-    print(f"  Host: {host}")
-    print(f"  Port: {port}")
-    print(f"  Username: {username}")
+    logger.debug(f"Database connection details:")
+    logger.debug(f"  Host: {host}")
+    logger.debug(f"  Port: {port}")
+    logger.debug(f"  Username: {username}")
     # Avoid printing password for security reasons (use it within your application)
-    print(f"  Database Name: {database_name}")
+    logger.debug(f"  Database Name: {database_name}")
 
   except FileNotFoundError:
-    print(f"Error: File '{filename}' not found.")
+    logger.error(f"File '{filename}' not found.")
   except KeyError as e:
-    print(f"Error: Missing key '{e}' in the configuration file.")
+    logger.error(f"Missing key '{e}' in the configuration file.")
 
 
 def run_grpc(stub, grpcFunction, **kwargs):
@@ -119,19 +130,19 @@ def run_grpc(stub, grpcFunction, **kwargs):
           kwargs["stub"] = stub
           response = grpcFunction(kwargs)
           # response = MessageToDict(response)
-          print("virtual datapoint update response: " + response)        
+          logger.info("grpc response: " + response)        
   except grpc.RpcError as e:
       # this is grpc error
       if e.code() == grpc.StatusCode.CANCELLED:
-          print("response grpc-error 1:{}".format(str(e)), flush=True)                        
+          logger.error("response grpc-error 1:{}".format(str(e)))                        
       elif e.code() == grpc.StatusCode.UNAVAILABLE and 'Connection reset by peer' in e.details():
-          print("response grpc-error 2:{}".format(str(e)), flush=True)             
+          logger.error("response grpc-error 2:{}".format(str(e)))             
       else:
-          print("response grpc-error 3:{}".format(str(e)), flush=True)
+          logger.error("response grpc-error 3:{}".format(str(e)))
 
       return None
   except Exception as e:                    
-      print("response e-error:{}".format(str(e)), flush=True)
+      logger.error("response e-error:{}".format(str(e)))
       return None
 
   return response

@@ -9,13 +9,11 @@ from Hierarchy import Hierarchy
 from Dataflow import DataFlow
 
 import xml.etree.ElementTree as ET
-from common import zeroUUID, readOption
-
+from common import readOption, logger
 
 def main():
     code = readOption("code")
-    components_binding = readOption("components_binding")    
-    
+    components_binding = readOption("components_binding")        
     host=readOption("databases.organization.host")
     port=readOption("databases.organization.port")
     database=readOption("databases.organization.database")
@@ -24,7 +22,8 @@ def main():
     org = Organization(host=host, port=port, user=user, password=password, database=database)
 
     tenant = org.Tenant(code)
-    print(f"{tenant.name.values[0]} | {tenant.company_code.values[0]} | {tenant.id.values[0]}")
+    
+    logger.info(f"{tenant.name.values[0]} | {tenant.company_code.values[0]} | {tenant.id.values[0]}")
 
     # purge old data in tenant
     host=readOption("databases.hierarchy.host")
@@ -34,7 +33,8 @@ def main():
     password=readOption("databases.hierarchy.password")
 
     hr = Hierarchy(host=host, port=port, user=user, password=password, database=database)
-    print("====================== TenantTree purge ==========================")    
+    
+    logger.info("====================== TenantTree purge ==========================")
     hr.purgeTree(tenant.id.values[0],
                  tenant.name.values[0],
                  tenant.company_code.values[0])  
@@ -44,16 +44,17 @@ def main():
     dataFlow = DataFlow(code, components_binding)
     df = dataFlow.PreparingData()
     # df = dataFlow.LoadData()
+    logger.info("====================== create_nodes_and_datapoints ==========================")
     dataFlow.create_nodes_and_datapoints(df, tenant.id.values[0])
     # export the df to csv file
     # the node_type is 'unknown' means they will not be in hierarchy tree
   
         
-    # print("====================== TenantTree XML ==========================")    
+    logger.debug("====================== TenantTree XML ==========================")    
     tenantTree = hr.TenantTree(tenant.id.values[0],
                                tenant.name.values[0],
                                tenant.company_code.values[0])
-    # # print(tenantTree)
+    # logger.debug(tenantTree)
     hr.SaveToXml(tenantTree, f"./output/new_{code}.xml")   
 
 
@@ -62,18 +63,20 @@ def main():
     database=readOption("databases.ems.database")
     user=readOption("databases.ems.username")
     password=readOption("databases.ems.password")    
-    # print("======================= EMS system tree XML =========================")
+
+    logger.debug("======================= EMS system tree XML =========================")
     ems = EMS(host=host, port=port, user=user, password=password, database=database)
     company = ems.company(code)
 
-    # print(f"{company.name.values[0]} | {company.code.values[0]} | {company.id.values[0]}")
-
+    # logger.debug(f"{company.name.values[0]} | {company.code.values[0]} | {company.id.values[0]}")
     companyTree = ems.SystemTree(company.id.values[0],
                                      company.name.values[0],
                                      company.code.values[0])
     
     ems.SaveToXml(companyTree, f"./output/{code}_system.xml")
-    # print(companyTree)
+    # logger.debug(companyTree)
+
+    logger.info("====================== DONE ==========================")
     
     
 if __name__ == "__main__":

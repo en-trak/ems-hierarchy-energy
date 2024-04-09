@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, text
 import xml.etree.ElementTree as ET
 from Energy import Energy
 import uuid
-from common import zeroUUID, is_none_or_nan, readOption
+from common import logger, zeroUUID, is_none_or_nan, readOption
 
 class Hierarchy:
 
@@ -162,7 +162,7 @@ class Hierarchy:
                     WHERE id = '{child_node["id"]}'
                     """
                     
-                    # print(f"[{node['id']}]: {sql}")
+                    # logger.debug(f"[{node['id']}]: {sql}")
 
                     name_df = pd.read_sql_query(sql, self.engine)
                     name_df["data_id"] = name_df["data_id"].astype(str)
@@ -211,7 +211,7 @@ class Hierarchy:
                     if purge:
                         self.purgeNodePov(id = f'{child_node["id"]}')
 
-                # print(child_node["name"])
+                # logger.debug(child_node["name"])
                 children.append(child_node)
 
                 if purge:
@@ -328,7 +328,7 @@ class Hierarchy:
             parent_type = NODE_TYPE[parent_type_level]
             
             if not components_binding and row['component'] == 1:
-                print(f"component child_id:[{child_id}]")
+                logger.debug(f"component child_id:[{child_id}]")
                 continue
             
             if not is_none_or_nan(row['parent_system_id']):
@@ -344,9 +344,9 @@ class Hierarchy:
                     continue
                 parent_type_level = NODE_TYPE_LEVEL[parent_type]
                 if child_type_level > parent_type_level:
-                    error_info = f"Error: child_type:{child_type} child_id:[{child_id}] should under parent_type:{parent_type} parent_id:[{parent_id}]" 
+                    error_info = f"child_type:{child_type} child_id:[{child_id}] should under parent_type:{parent_type} parent_id:[{parent_id}]" 
                     # raise ValueError(error_info)
-                    print(error_info)
+                    logger.warning(error_info)
                     continue
             
             
@@ -368,7 +368,7 @@ class Hierarchy:
                 return_id = connection.execute(sqlInsert).fetchone()[0]
 
             # check insert ok
-            print(f"Inserted [{return_id}]")
+            logger.debug(f"Inserted [{return_id}]")
 
     def query_datapoint_node(self, data_id):
         sql = f''' SELECT id, ref_id FROM node_data_points
@@ -430,10 +430,10 @@ class Hierarchy:
         }
 
         insert_sql = mapSqlInsert[node_type]
-        # print(f"=====================[{node_type}]===========================")
+        # logger.debug(f"=====================[{node_type}]===========================")
         # 执行SQL语句并获取新创建数据点的ID
         if node_type == "DATAPOINT":
-            # print(f"---- create node: {node_type}, sql={sql} ----")            
+            # logger.debug(f"---- create node: {node_type}, sql={sql} ----")            
             dataDF = pd.read_sql_query(mapSqlCheck[node_type], self.engine)
             if dataDF.shape[0] > 0 and not pd.isnull(dataDF['id'].iloc[0]):
                 return dataDF['id'].iloc[0], dataDF['ref_id'].iloc[0]        
@@ -446,7 +446,7 @@ class Hierarchy:
                         node_datapoint_id, ref_id = connection.execute(insert_sql).fetchone()[:2]
                         quit = True                        
                         if toDelete:
-                            print(f"Warrning component systme, node type: {node_type} desc: {desc} inserted after remove the old data in node_data_points")
+                            logger.debug(f"component systme, node type: {node_type} desc: {desc} inserted after remove the old data in node_data_points")
                     except Exception:
                         # 如果插入失败，说明已经有enerngy_datapoin存在了，
                         # 1: 直接提取存对应的node_data_points.id 和 node_data_points.ref_id
