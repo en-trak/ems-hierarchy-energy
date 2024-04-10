@@ -109,6 +109,8 @@ class Energy:
         new_id = uuid.uuid4()
 
         status = self.DatapointStatus_name["ENABLE"]
+
+        name = name.replace("'", "''")
         sql = f"""
             INSERT INTO energy_datapoint (id, ref_id, name, meter_id, status)
             VALUES ('{new_id}', '{ref_id}', '{name}', '{meter_id}', {status})
@@ -129,7 +131,7 @@ class Energy:
         }
         """
         new_id = uuid.uuid4()
-
+        name = name.replace("'", "''")
         sql = f"""
             INSERT INTO energy_virtual_datapoint
             (id, tenant_id, datapoint_id, "name", "expression", status)
@@ -157,6 +159,10 @@ class Energy:
         dataDF = pd.read_sql_query(sql, self.engine)
         dataDF['id'] = dataDF['id'].astype(str)
 
+        if dataDF.empty:
+            # DataFrame is empty (has no rows)
+            return None
+
         return dataDF[columns]
     
     
@@ -178,6 +184,7 @@ class Energy:
         site_id = zeroUUID()
 
         status = self.DatapointStatus_name["ENABLE"]
+        name = name.replace("'", "''")
         sql = f"""
             INSERT INTO energy_meter (id, ref_id, name, status, dataflow_mode, site_id, data_type, meter_type, status)
             VALUES ('{new_id}', '{ref_id}', '{name}', {status}, {dataflow_mode}, {site_id}, {data_type}, {meter_type}, {meter_status})

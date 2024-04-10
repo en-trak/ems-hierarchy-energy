@@ -11,6 +11,8 @@ import re
 from common import logger, zeroUUID, is_none_or_nan, readOption, run_grpc, big_endian_uuid, STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC
 import energy_virtual_datapoint_pb2 as vdpGrpcPb2 
 import uuid
+import gc
+
 
 class DataFlow(object):
 
@@ -350,6 +352,14 @@ class DataFlow(object):
                     def RequestUpdateRelations(kwargs):
                         stub = kwargs['stub']
                         vdp_df = self.energy.getVirtualDataPoint(energy_datapint_id, columns=["id", "status", "is_solar"])
+                        if vdp_df is None:
+                            logger.warning(f"no RequestUpdateRelations request as -> systemID:{sid} getVirtualDataPoint return empty")
+                            # 释放 dataframe 占用的内存
+                            del vdp_df
+
+                            # 强制垃圾回收器释放内存
+                            gc.collect()
+                            return None
                         
                         id_of_virtual_datapoint = str(vdp_df['id'].iloc[0])
                         edid = sys_df.loc[i, "id_y"]
@@ -357,6 +367,9 @@ class DataFlow(object):
                         if is_none_or_nan(id_of_virtual_datapoint):                            
                             logger.warning(f"no RequestUpdateRelations request as -> systemID:{sid} energy_datapint_id:[{edid}] did not get virtual_datapoint id!!!")
                             del vdp_df
+                            # 强制垃圾回收器释放内存
+                            gc.collect()
+
                             return None
 
                         logger.info(f"systemID:{sid} energy_datapint_id:[{edid}] id_of_virtual_datapoint:[{id_of_virtual_datapoint}]")
@@ -391,6 +404,9 @@ class DataFlow(object):
                                                                            complex = complex
                                                                            ))
                         del vdp_df
+
+                        # 强制垃圾回收器释放内存
+                        gc.collect()
 
                         return response
                     

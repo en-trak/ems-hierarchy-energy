@@ -393,6 +393,9 @@ class Hierarchy:
         '''
         new_id = uuid.uuid4()        
 
+        name = name.replace("'", "''")
+        desc = desc.replace("'", "''")      
+
         mapSqlInsert = {
             "SITE": f"""
                     INSERT INTO node_sites
