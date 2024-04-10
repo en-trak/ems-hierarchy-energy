@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 import uuid
 from enum import Enum
-from common import zeroUUID
+from common import zeroUUID, logger
 
 # Enum of meter defined in energy_meter.proto file
 class DataType(Enum):
@@ -171,7 +171,7 @@ class Energy:
         elif meter_type == MeterType.BMS:
             pass
         else:
-            print("no code for meter type: {}".format(meter_type))
+            logger.info("no code for meter type: {}".format(meter_type))
             return None
 
         new_id = uuid.uuid4()

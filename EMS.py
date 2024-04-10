@@ -129,7 +129,7 @@ class EMS:
                 "children": []
             }
 
-            # print(child_node["name"])
+            # logger.debug(child_node["name"])
             children.append(child_node)
 
         node["children"] = children
