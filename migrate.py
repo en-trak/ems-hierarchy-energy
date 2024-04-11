@@ -12,6 +12,9 @@ import xml.etree.ElementTree as ET
 from common import readOption, logger
 
 def main():
+
+    simulation = True
+
     code = readOption("code")
     components_binding = readOption("components_binding")        
     host=readOption("databases.organization.host")
@@ -34,14 +37,15 @@ def main():
 
     hr = Hierarchy(host=host, port=port, user=user, password=password, database=database)
     
-    logger.info("====================== TenantTree purge ==========================")
-    hr.purgeTree(tenant.id.values[0],
-                 tenant.name.values[0],
-                 tenant.company_code.values[0])  
-       
+    # logger.info("====================== TenantTree purge ==========================")
+    if not simulation:
+        hr.purgeTree(tenant.id.values[0],
+                        tenant.name.values[0],
+                        tenant.company_code.values[0])  
+
     
     # generate tenant tree in dataflow
-    dataFlow = DataFlow(code, components_binding)
+    dataFlow = DataFlow(code, components_binding, simulation=simulation)
     df = dataFlow.PreparingData()
     # df = dataFlow.LoadData()
     logger.info("====================== create_nodes_and_datapoints ==========================")
@@ -49,13 +53,23 @@ def main():
     # export the df to csv file
     # the node_type is 'unknown' means they will not be in hierarchy tree
   
-        
-    logger.debug("====================== TenantTree XML ==========================")    
-    tenantTree = hr.TenantTree(tenant.id.values[0],
-                               tenant.name.values[0],
-                               tenant.company_code.values[0])
-    # logger.debug(tenantTree)
-    hr.SaveToXml(tenantTree, f"./output/new_{code}.xml")   
+    site_path = f"./output/{code}"    
+    if simulation:   
+        hr = dataFlow.hr
+        logger.debug("====================== Simulate TenantTree XML ==========================")    
+        tenantTree = dataFlow.hr.TenantSimulateTree(tenant.id.values[0],
+                                tenant.name.values[0],
+                                tenant.company_code.values[0])
+        # logger.debug(tenantTree)
+        hr.SaveToXml(tenantTree, f"{site_path}/sim_new_{code}.xml") 
+    else:        
+        logger.debug("====================== TenantTree XML ==========================")    
+        tenantTree = dataFlow.hr.TenantTree(tenant.id.values[0],
+                                tenant.name.values[0],
+                                tenant.company_code.values[0],
+                                purge=False)
+        # logger.debug(tenantTree)
+        hr.SaveToXml(tenantTree, f"{site_path}/new_{code}.xml")   
 
 
     host=readOption("databases.ems.host")
@@ -70,11 +84,11 @@ def main():
 
     # logger.debug(f"{company.name.values[0]} | {company.code.values[0]} | {company.id.values[0]}")
     companyTree = ems.SystemTree(company.id.values[0],
-                                     company.name.values[0],
-                                     company.code.values[0])
+                                    company.name.values[0],
+                                    company.code.values[0])
     
-    ems.SaveToXml(companyTree, f"./output/{code}_system.xml")
-    # logger.debug(companyTree)
+    ems.SaveToXml(companyTree, f"{site_path}/{code}_system.xml")
+        # logger.debug(companyTree)
 
     logger.info("====================== DONE ==========================")
     

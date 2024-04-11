@@ -42,7 +42,12 @@ def readOption(options='database.db1.host', config_path='config.yaml'):
 
 code = readOption("code")
 # Configure logging to write to a file named "xxx.log"
-logging.basicConfig(filename=f"{code}.log", level=logging.DEBUG)
+import os
+from pathlib import Path
+site_path = f"./output/{code}"
+if not Path(f"{site_path}").is_dir(): 
+    os.makedirs(site_path)
+logging.basicConfig(filename=f"{site_path}/{code}.log", level=logging.DEBUG)
 
 # Create a logger for your application
 logger = logging.getLogger(__name__)

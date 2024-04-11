@@ -8,8 +8,11 @@ import uuid
 from common import logger, zeroUUID, is_none_or_nan, readOption
 
 class Hierarchy:
+    simulation_relations_df = None
+    simulation_sys_df = None
+    simulation = False
 
-    def __init__(self, host="localhost", port=5432, database="hierarchy", user="hierarchy", password="hierarchy"):        
+    def __init__(self, host="localhost", port=5432, database="hierarchy", user="hierarchy", password="hierarchy", simulation=False):        
         # Construct the connection string
         connection_string = f"postgresql://{user}:{password}@{host}:{port}/{database}"
         # Create the engine
@@ -23,7 +26,17 @@ class Hierarchy:
 
         energy = Energy(host=host, port=port, user=user, password=password, database=database)
         
-        self.energy_dp = energy.dataPoint()
+        self.energy_dp = energy.dataPoint()        
+        
+        self.simulation = simulation        
+
+        if simulation:
+            # Define the list of column names, including the empty column
+            columns = ['parent_id', 'parent_type', 'child_id', 'child_type']
+
+            # Create the dataframe with empty columns
+            self.simulation_relations_df = pd.DataFrame(columns=columns)
+            
 
     def nodeDataPointByDataID(self, data_id = None):        
         sql = f'''SELECT id from node_data_points where data_id = '{data_id}' ''' 
@@ -121,21 +134,19 @@ class Hierarchy:
         # purge the root node
         self.purgeRelation(parent_id = f'{tenantID}')
    
-    def _build_or_purge_tree(self, node, purge=False):         
+    def _build_or_purge_tree(self, node, purge=False):
         sql = f"""
-        SELECT
-            r.id,
-            r.parent_id,
-            r.parent_type,
-            r.child_id,
-            r.child_type
-        FROM relations r
-        WHERE r.parent_id = '{node["id"]}'
+            SELECT
+                r.id,
+                r.parent_id,
+                r.parent_type,
+                r.child_id,
+                r.child_type
+            FROM relations r
+            WHERE r.parent_id = '{node["id"]}'
         """
-
-        
-
         relations_df = pd.read_sql_query(sql, self.engine)
+
         relations_df['id'] = relations_df['id'].astype(str)
         relations_df['parent_id'] = relations_df['parent_id'].astype(str)
         relations_df['child_id'] = relations_df['child_id'].astype(str)
@@ -155,7 +166,8 @@ class Hierarchy:
                 }
 
                 # 查询子节点的名称
-                if child_node["type"] == "DATAPOINT":
+                if child_node["type"] == "DATAPOINT":                   
+                   
                     sql = f"""
                     SELECT name, data_id, ref_id
                     FROM node_data_points
@@ -164,7 +176,8 @@ class Hierarchy:
                     
                     # logger.debug(f"[{node['id']}]: {sql}")
 
-                    name_df = pd.read_sql_query(sql, self.engine)
+                    name_df = pd.read_sql_query(sql, self.engine)                  
+
                     name_df["data_id"] = name_df["data_id"].astype(str)
                     name_df["ref_id"] = name_df["ref_id"].astype(str)
 
@@ -234,6 +247,84 @@ class Hierarchy:
 
         return root_node
     
+
+    def _build_simulate_tree(self, node):
+        relations_df = self.simulation_relations_df[self.simulation_relations_df['parent_id']==f"{node["id"]}"]
+
+        # relations_df['id'] = relations_df['id'].astype(str)
+        relations_df['parent_id'] = relations_df['parent_id'].astype(str)
+        relations_df['child_id'] = relations_df['child_id'].astype(str)
+
+        children = []
+        for i in range(relations_df.shape[0]):
+            row = relations_df.iloc[i]
+            child_node = {
+                "id": row["child_id"],
+                "type": row["child_type"],
+                "name": "",
+                "data_id": "",
+                "ref_id": "",
+                "system_id": "",
+                "children": []
+            }
+
+            # 查询子节点的名称
+            if child_node["type"] == "DATAPOINT": 
+                name_df = self.simulation_sys_df[self.simulation_sys_df['node_id']==f"{child_node["id"]}"]              
+
+                name_df["id_y"] = name_df["id_y"].astype(str)
+                name_df["ref_id"] = name_df["node_ref_id"].astype(str)
+
+                child_node["ref_id"] = name_df["ref_id"].values[0]
+                child_node["name"] = name_df["name_x"].values[0]    
+                                
+                data_id = name_df["id_y"].values[0]
+
+                child_node["data_id"] = data_id
+                
+                try:
+                    system_ref_id = name_df["ref_id"].values[0]
+                except:
+                    system_ref_id = "None"
+                
+                child_node["system_id"] = system_ref_id
+                
+
+            elif child_node["type"] == "SITE":
+                sql = f"""
+                SELECT name
+                FROM node_sites
+                WHERE id = '{child_node["id"]}'
+                """
+                name_df = pd.read_sql_query(sql, self.engine)
+                child_node["name"] = name_df["name"].values[0]
+
+            elif child_node["type"] == "POV":
+                name_df = self.simulation_sys_df[self.simulation_sys_df['node_id']==f"{child_node["id"]}"]
+                child_node["name"] = name_df["name_x"].values[0]
+
+            # logger.debug(child_node["name"])
+            children.append(child_node)            
+
+        node["children"] = children
+        for child in children:
+            self._build_simulate_tree(child)
+
+
+    def TenantSimulateTree(self, tenantID, tenantName, tenantCode):
+        # 定义根节点
+        root_node = {
+            "id": tenantID,            
+            "type": "tenant",
+            "name": f"{tenantName} | {tenantCode}",
+            "children": []
+        }
+
+        # TODO HERE 
+        self._build_simulate_tree(root_node)
+
+        return root_node
+    
     def SaveToXml(self, root, filename):
         """
         将层次结构保存到 XML 文件中。
@@ -267,7 +358,7 @@ class Hierarchy:
         tree = ET.ElementTree(root_element)
         tree.write(filename)
         
-    def create_relations(self, df, components_binding = False):
+    def create_relations(self, df, components_binding = False, simulation = False):
         '''
         df:
         ['id_x', 'parent_system_id', 'name_x', 'source_key', 'meter_id',
@@ -307,6 +398,10 @@ class Hierarchy:
             "TENANT": 3,
         }
         len_node_typeLevels = len(NODE_TYPE_LEVEL)
+        
+        flag = ""
+        if simulation:
+            flag = "Simulation" if simulation else ""
 
         for _, row in df.iterrows():
             child_id = row['node_id']
@@ -350,25 +445,39 @@ class Hierarchy:
                     continue
             
             
-            sqlCheck = f"""
-                    SELECT id FROM relations
-                    where child_id = '{child_id}'
-                """
-            dataDF = pd.read_sql_query(sqlCheck, self.engine)
-            if dataDF.shape[0] > 0:
-                continue   
-            
-            sqlInsert = f'''
-                    INSERT INTO relations
-                    (parent_id, parent_type, child_id, child_type)
-                    VALUES ('{parent_id}', '{parent_type}', '{child_id}', '{child_type}')
-                    RETURNING id;
-            '''
-            with self.engine.connect() as connection:                
-                return_id = connection.execute(sqlInsert).fetchone()[0]
+                if not simulation:
+                    # 如果已经有了，不用再创建
+                    sqlCheck = f"""
+                            SELECT id FROM relations
+                            where child_id = '{child_id}'
+                        """
+                    dataDF = pd.read_sql_query(sqlCheck, self.engine)
+                    if dataDF.shape[0] > 0:
+                        continue   
+                    
+                    sqlInsert = f'''
+                            INSERT INTO relations
+                            (parent_id, parent_type, child_id, child_type)
+                            VALUES ('{parent_id}', '{parent_type}', '{child_id}', '{child_type}')
+                            RETURNING id;
+                    '''
+                    with self.engine.connect() as connection:                
+                        return_id = connection.execute(sqlInsert).fetchone()[0]
+                else: 
+                    # Create a new row as a Series (dictionary-like)
+                    new_row = pd.Series({                    
+                        'parent_id': parent_id,
+                        'parent_type': parent_type,
+                        'child_id': child_id,
+                        'child_type': child_type
+                    })
+
+                    # Append the new row to the dataframe using append
+                    self.simulation_relations_df = self.simulation_relations_df.append(new_row, ignore_index=True)
+
 
             # check insert ok
-            logger.debug(f"Inserted [{return_id}]")
+            logger.debug(f"{flag} Inserted [{return_id}]")
 
     def query_datapoint_node(self, data_id):
         sql = f''' SELECT id, ref_id FROM node_data_points
@@ -480,6 +589,25 @@ class Hierarchy:
                     raise ValueError(error_info)
             
 
+            return node_datapoint_id
+        
+
+    def create_simulate_node(self, name, node_type, city_id = None, data_id=None, desc = "", pov_unit="KWH", data_type="ENERGY", ref_id = 0):          
+        '''
+        hierarchy=> select distinct data_type from node_data_points;
+            data_type       
+        -----------------------
+        VIRTUALDATAPOINT
+        WATERMETER
+        ENERGY
+        WATERVIRTUALDATAPOINT
+        UNKNOW
+        (5 rows)
+        '''        
+        node_datapoint_id = str(uuid.uuid4()) 
+        if node_type == "DATAPOINT":                       
+            return node_datapoint_id, ref_id
+        else:
             return node_datapoint_id
 
 
