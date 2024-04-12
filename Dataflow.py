@@ -222,7 +222,7 @@ class DataFlow(object):
                 sys_df.loc[i, "node_id"] = node_id        
 
         logger.debug("======================= none-virtual energy system(node_data_points) =========================")
-        # data system which has data(kwh), defined as hierachy.node_datapoint and energy.energy_datapoint                
+        # data system which has data(kwh), defined as hierachy.node_datapoint(data_type==energy) and energy.energy_datapoint                
         for i in range(len(sys_df)):
             if not is_none_or_nan(sys_df.loc[i, 'meter_id']) \
                 and not is_none_or_nan(sys_df.loc[i, 'source_key'] \
@@ -346,8 +346,8 @@ class DataFlow(object):
                     sys_df.loc[i, "component"] = 1                     
 
         logger.debug("======================= virtual system(node_data_points) =========================")
-        # virtual system which has data(kwh) calculated by expression, it also take as data system, 
-        # so defined as hierachy.node_datapoint and energy.energy_datapoint                
+        # virtual system which has data(kwh) calculated by expression, it also take as data virtual system, 
+        # so defined as hierachy.node_datapoint(data_type==virtual) and energy.energy_datapoint                
         pattern = re.compile(r"{id_(\d+)}")
         for i in range(len(sys_df)):
             if not is_none_or_nan(sys_df.loc[i, 'parent_system_id']) \
@@ -512,22 +512,7 @@ class DataFlow(object):
                     sys_df.loc[i, "data_type"] = 'VIRTUALDATAPOINT'                    
 
         
-
-        logger.debug("======================= virtual system need refresh the expression again =========================")
-        # virtual system need refresh the expression again
-        # to make sure the expression {id_virtual_datapoint_ref_id_xxx} can be found at this time.
-        pattern = re.compile(r"{id_(\d+)}")
-        for i in range(len(sys_df)):
-            if not is_none_or_nan(sys_df.loc[i, 'parent_system_id']) \
-                and not is_none_or_nan(sys_df.loc[i, 'composition_expression']) \
-                and sys_df.loc[i, "expression_replaced"] == 0:
-                # 更新composition_expression里边打id_xxx为'node_ref_id'
-                try:
-                    self.replace_expression_id(sys_df)
-                except Exception:
-                    # logger.warning('''the expression didn't find any of id_xxx, id_xxx's system maybe are removed, please update the expression to right''')                    
-                    logger.error(f"------ call replace_expression_id failed in second time, expression: {sys_df.loc[i, 'composition_expression']} ------")
-                    # continue
+    
 
         # 创建父子节点关系
         # 根据id_x, parent_system_id 关系，在hierarchy 的 relatives里边创建 父子关系          
