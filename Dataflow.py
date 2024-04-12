@@ -8,7 +8,7 @@ from Organization import Organization
 from City import City
 import xml.etree.ElementTree as ET
 import re
-from common import logger, zeroUUID, is_none_or_nan, readOption, run_grpc, big_endian_uuid, STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC
+from common import logger, zeroUUID, is_none_or_nan, is_none_or_nan_zero, readOption, run_grpc, big_endian_uuid, STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC
 import energy_virtual_datapoint_pb2 as vdpGrpcPb2 
 import uuid
 import gc
@@ -202,8 +202,8 @@ class DataFlow(object):
         # folder system which has no meterid, defined as hierachy.node_pov
         for i in range(len(sys_df)):
             if not is_none_or_nan(sys_df.loc[i, 'parent_system_id']) \
-                and is_none_or_nan(sys_df.loc[i, 'composition_expression']) \
-                and is_none_or_nan(sys_df.loc[i, 'meter_id']):
+                and is_none_or_nan_zero(str(sys_df.loc[i, 'composition_expression'])) \
+                and is_none_or_nan_zero(str(sys_df.loc[i, 'meter_id'])):
                 # and is_none_or_nan(sys_df.loc[i, 'source_key']):
                 # 如果meter_id是空打，而sourckey非空，为脏数据，可以ignore
                 node_id = 0
