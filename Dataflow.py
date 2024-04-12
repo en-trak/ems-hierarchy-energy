@@ -197,6 +197,8 @@ class DataFlow(object):
 
                 sys_df.loc[i, "node_type"] = 'SITE'       
                 sys_df.loc[i, "node_id"] = node_id
+
+                logger.debug(f"[SITE] ===== [{sys_df.loc[i, 'name_x']}]")
                 
         logger.debug("======================= pov node =========================")
         # folder system which has no meterid, defined as hierachy.node_pov
@@ -220,6 +222,7 @@ class DataFlow(object):
 
                 sys_df.loc[i, "node_type"] = 'POV'       
                 sys_df.loc[i, "node_id"] = node_id        
+                logger.debug(f"[POV] ===== [{sys_df.loc[i, 'name_x']}]")
 
         logger.debug("======================= none-virtual energy system(node_data_points) =========================")
         # data system which has data(kwh), defined as hierachy.node_datapoint(data_type==energy) and energy.energy_datapoint                
@@ -343,7 +346,9 @@ class DataFlow(object):
                 if not is_none_or_nan(sys_df.loc[i, 'component_of_id']):
                     # 如果是component system,它会在Hierarchy创建一个没有层级关系的datapoint
                     # 为了composition_expression能够使用node_ref_id,必须创建此datapoint
-                    sys_df.loc[i, "component"] = 1                     
+                    sys_df.loc[i, "component"] = 1       
+
+                logger.debug(f"[ENERGY DATAPOINT] ===== [{sys_df.loc[i, 'name_x']}]")              
 
         logger.debug("======================= virtual system(node_data_points) =========================")
         # virtual system which has data(kwh) calculated by expression, it also take as data virtual system, 
@@ -509,7 +514,9 @@ class DataFlow(object):
                     sys_df.loc[i, "node_type"] = 'DATAPOINT'
                     sys_df.loc[i, "node_id"] = node_id
                     sys_df.loc[i, "node_ref_id"] = node_ref_id                    
-                    sys_df.loc[i, "data_type"] = 'VIRTUALDATAPOINT'                    
+                    sys_df.loc[i, "data_type"] = 'VIRTUALDATAPOINT'   
+
+                logger.debug(f"[Virtual] ===== [{sys_df.loc[i, 'name_x']}]")                 
 
         
     
