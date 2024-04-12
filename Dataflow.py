@@ -130,9 +130,11 @@ class DataFlow(object):
             id_xxx = match.group(1)
             node_ref_id = df.loc[df['id_x'] == int(id_xxx), 'node_ref_id'].values[0]
             composition_expression = composition_expression.replace(match.group(0), "{id_"+str(node_ref_id)+"}")
+
+        logger.info("To replace expression with B: {}".format(composition_expression))    
         df.loc[i, 'composition_expression'] = composition_expression        
 
-        logger.info("Replace expression with B: {}".format(composition_expression))
+        # logger.info("Replace expression with B: {}".format(composition_expression))
 
         return df
 
@@ -532,6 +534,7 @@ class DataFlow(object):
         if not self.simulation:
             logger.info("--------------- create_relations in hierarchy -----------------")
             self.hr.create_relations(sys_df, components_binding = self.components_binding)
+            self.hr.simulation_sys_df = sys_df
         else:
             logger.info("--------------- simulate create_relations in hierarchy -----------------")       
             self.hr.create_relations(sys_df, components_binding = self.components_binding)     

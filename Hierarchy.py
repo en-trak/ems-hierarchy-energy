@@ -249,7 +249,8 @@ class Hierarchy:
     
 
     def _build_simulate_tree(self, node):
-        relations_df = self.simulation_relations_df[self.simulation_relations_df['parent_id']==f"{node["id"]}"]
+        str_node_id = f"{node['id']}"
+        relations_df = self.simulation_relations_df[self.simulation_relations_df['parent_id']==str_node_id]        
 
         # relations_df['id'] = relations_df['id'].astype(str)
         relations_df['parent_id'] = relations_df['parent_id'].astype(str)
@@ -263,19 +264,22 @@ class Hierarchy:
                 "type": row["child_type"],
                 "name": "",
                 "data_id": "",
-                "ref_id": "",
+                "node_ref_id": "",
                 "system_id": "",
                 "children": []
             }
 
             # 查询子节点的名称
             if child_node["type"] == "DATAPOINT": 
-                name_df = self.simulation_sys_df[self.simulation_sys_df['node_id']==f"{child_node["id"]}"]              
+                str_child_node_id = f"{child_node['id']}"
+                name_df = self.simulation_sys_df[self.simulation_sys_df['node_id']==str_child_node_id]              
 
                 name_df["id_y"] = name_df["id_y"].astype(str)
-                name_df["ref_id"] = name_df["node_ref_id"].astype(str)
+                name_df["ref_id"] = name_df["ref_id"].astype(str)
+                name_df["node_ref_id"] = name_df["node_ref_id"].astype(str)
+                
 
-                child_node["ref_id"] = name_df["ref_id"].values[0]
+                child_node["node_ref_id"] = name_df["node_ref_id"].values[0]
                 child_node["name"] = name_df["name_x"].values[0]    
                                 
                 data_id = name_df["id_y"].values[0]
@@ -288,6 +292,10 @@ class Hierarchy:
                     system_ref_id = "None"
                 
                 child_node["system_id"] = system_ref_id
+
+                # if data_type is virtual system
+                if name_df["data_type"].values[0] == "VIRTUALDATAPOINT":
+                    child_node["expression"] = name_df["composition_expression"].values[0]
                 
 
             elif child_node["type"] == "SITE":
@@ -300,7 +308,8 @@ class Hierarchy:
                 child_node["name"] = name_df["name"].values[0]
 
             elif child_node["type"] == "POV":
-                name_df = self.simulation_sys_df[self.simulation_sys_df['node_id']==f"{child_node["id"]}"]
+                str_child_node_id = f"{child_node['id']}"
+                name_df = self.simulation_sys_df[self.simulation_sys_df['node_id']==str_child_node_id]
                 child_node["name"] = name_df["name_x"].values[0]
 
             # logger.debug(child_node["name"])
@@ -319,8 +328,7 @@ class Hierarchy:
             "name": f"{tenantName} | {tenantCode}",
             "children": []
         }
-
-        # TODO HERE 
+        
         self._build_simulate_tree(root_node)
 
         return root_node
@@ -347,8 +355,9 @@ class Hierarchy:
                 if child["type"] == "DATAPOINT":
                     # 添加其他属性
                     for key, value in child.items():
-                        if key not in ("id", "type", "name", "children"):                        
-                            child_element.attrib[key] = str(value)
+                        if key not in ("id", "type", "name", "children"):   
+                            if str(value) != "":
+                                child_element.attrib[key] = str(value)
 
                 _recurse(child, child_element)
 
@@ -358,7 +367,7 @@ class Hierarchy:
         tree = ET.ElementTree(root_element)
         tree.write(filename)
         
-    def create_relations(self, df, components_binding = False, simulation = False):
+    def create_relations(self, df, components_binding = False):
         '''
         df:
         ['id_x', 'parent_system_id', 'name_x', 'source_key', 'meter_id',
@@ -400,8 +409,8 @@ class Hierarchy:
         len_node_typeLevels = len(NODE_TYPE_LEVEL)
         
         flag = ""
-        if simulation:
-            flag = "Simulation" if simulation else ""
+        if self.simulation:
+            flag = "Simulation" if self.simulation else ""
 
         for _, row in df.iterrows():
             child_id = row['node_id']
@@ -423,7 +432,7 @@ class Hierarchy:
             parent_type = NODE_TYPE[parent_type_level]
             
             if not components_binding and row['component'] == 1:
-                logger.debug(f"component child_id:[{child_id}]")
+                logger.debug(f"ignore component child_id in relations:[{child_id}]")
                 continue
             
             if not is_none_or_nan(row['parent_system_id']):
@@ -437,47 +446,48 @@ class Hierarchy:
                     continue
                 if is_none_or_nan(parent_id):
                     continue
+
                 parent_type_level = NODE_TYPE_LEVEL[parent_type]
                 if child_type_level > parent_type_level:
                     error_info = f"child_type:{child_type} child_id:[{child_id}] should under parent_type:{parent_type} parent_id:[{parent_id}]" 
                     # raise ValueError(error_info)
                     logger.warning(error_info)
                     continue
+                
+                # Create a new row as a Series (dictionary-like)
+                new_row = pd.Series({                    
+                    'parent_id': parent_id,
+                    'parent_type': parent_type,
+                    'child_id': child_id,
+                    'child_type': child_type
+                })
+
+                # Append the new row to the dataframe using append for simulate relation dataframe
+                self.simulation_relations_df = self.simulation_relations_df.append(new_row, ignore_index=True)
+                # self.simulation_relations_df = pd.concat([self.simulation_relations_df, new_row], ignore_index=True)
+
+                # 如果已经有了，不用再创建
+                sqlCheck = f"""
+                        SELECT id FROM relations
+                        where child_id = '{child_id}'
+                    """
+                dataDF = pd.read_sql_query(sqlCheck, self.engine)
+                if dataDF.shape[0] > 0:
+                    continue   
+                
+                sqlInsert = f'''
+                        INSERT INTO relations
+                        (parent_id, parent_type, child_id, child_type)
+                        VALUES ('{parent_id}', '{parent_type}', '{child_id}', '{child_type}')
+                        RETURNING id;
+                '''
+                with self.engine.connect() as connection:                
+                    return_id = connection.execute(sqlInsert).fetchone()[0]                        
+                    logger.debug(f"{flag} Inserted [{return_id}]")
+
+                logger.debug(f"{flag} Inserted child_id:[{child_id}]")
+                # print(f"{flag} Inserted child_id:[{child_id}]")
             
-            
-                if not simulation:
-                    # 如果已经有了，不用再创建
-                    sqlCheck = f"""
-                            SELECT id FROM relations
-                            where child_id = '{child_id}'
-                        """
-                    dataDF = pd.read_sql_query(sqlCheck, self.engine)
-                    if dataDF.shape[0] > 0:
-                        continue   
-                    
-                    sqlInsert = f'''
-                            INSERT INTO relations
-                            (parent_id, parent_type, child_id, child_type)
-                            VALUES ('{parent_id}', '{parent_type}', '{child_id}', '{child_type}')
-                            RETURNING id;
-                    '''
-                    with self.engine.connect() as connection:                
-                        return_id = connection.execute(sqlInsert).fetchone()[0]
-                else: 
-                    # Create a new row as a Series (dictionary-like)
-                    new_row = pd.Series({                    
-                        'parent_id': parent_id,
-                        'parent_type': parent_type,
-                        'child_id': child_id,
-                        'child_type': child_type
-                    })
-
-                    # Append the new row to the dataframe using append
-                    self.simulation_relations_df = self.simulation_relations_df.append(new_row, ignore_index=True)
-
-
-            # check insert ok
-            logger.debug(f"{flag} Inserted [{return_id}]")
 
     def query_datapoint_node(self, data_id):
         sql = f''' SELECT id, ref_id FROM node_data_points

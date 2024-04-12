@@ -54,22 +54,29 @@ def main():
     # the node_type is 'unknown' means they will not be in hierarchy tree
   
     site_path = f"./output/{code}"    
-    if simulation:   
-        hr = dataFlow.hr
+    if simulation:
+        srd = dataFlow.hr.simulation_relations_df
+        site_node_id = srd[srd['parent_type']=='SITE']['parent_id'].iloc[0]
+        
         logger.debug("====================== Simulate TenantTree XML ==========================")    
-        tenantTree = dataFlow.hr.TenantSimulateTree(tenant.id.values[0],
+        tenantTree = dataFlow.hr.TenantSimulateTree(
+                                # tenant.id.values[0],
+                                site_node_id,
                                 tenant.name.values[0],
                                 tenant.company_code.values[0])
         # logger.debug(tenantTree)
-        hr.SaveToXml(tenantTree, f"{site_path}/sim_new_{code}.xml") 
+        dataFlow.hr.SaveToXml(tenantTree, f"{site_path}/sim_new_{code}.xml") 
     else:        
+        srd = dataFlow.hr.simulation_relations_df
+        site_node_id = srd[srd['parent_type']=='SITE']['parent_id'].iloc[0]
+        
         logger.debug("====================== TenantTree XML ==========================")    
         tenantTree = dataFlow.hr.TenantTree(tenant.id.values[0],
                                 tenant.name.values[0],
                                 tenant.company_code.values[0],
                                 purge=False)
         # logger.debug(tenantTree)
-        hr.SaveToXml(tenantTree, f"{site_path}/new_{code}.xml")   
+        dataFlow.hr.SaveToXml(tenantTree, f"{site_path}/new_{code}.xml")   
 
 
     host=readOption("databases.ems.host")
