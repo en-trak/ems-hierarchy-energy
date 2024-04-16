@@ -35,7 +35,7 @@ databases:
     username: city
     password: rXGajaRh4haudHiwBVFR
 
-code: "cdnis"    
+code: "isf"    
 components_binding: False
 
 grpc:

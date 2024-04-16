@@ -85,10 +85,10 @@ def remove_extra_spaces(text):
   return " ".join(text.split()).strip()
 
 def is_none_or_nan(value):
-  return value is None or pd.isnull(value) or value == 'nan' 
+  return value is None or pd.isnull(value) or value == 'nan' or value == 'None' 
 
 def is_none_or_nan_zero(value):
-  return value is None or pd.isnull(value) or len(value) == 0 or remove_extra_spaces(str(value)) == '' or value == 'nan'
+  return value is None or pd.isnull(value) or len(value) == 0 or remove_extra_spaces(str(value)) == '' or value == 'nan' or value == 'None'
 
 def big_endian_uuid(uuid_str):
     # Convert string to UUID object

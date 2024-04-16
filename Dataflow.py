@@ -198,11 +198,18 @@ class DataFlow(object):
                 sys_df.loc[i, "node_type"] = 'SITE'       
                 sys_df.loc[i, "node_id"] = node_id
 
-                logger.debug(f"[SITE] ===== [{sys_df.loc[i, 'name_x']}]")
+                logger.debug(f"[SITE] ===== ID [{sys_df.loc[i, 'id_x']}] [{sys_df.loc[i, 'name_x']}]")
                 
         logger.debug("======================= pov node =========================")
         # folder system which has no meterid, defined as hierachy.node_pov
         for i in range(len(sys_df)):
+            # if not is_none_or_nan(sys_df.loc[i, 'parent_system_id']):
+            #     ot = f"[POV] id [{sys_df.loc[i, 'id_x']}]"
+            #     ce = str(sys_df.loc[i, 'composition_expression'])
+            #     print(f"{ot} ce:{ce}, check-ce:{is_none_or_nan_zero(ce)}")
+            #     mi = str(sys_df.loc[i, 'meter_id'])
+            #     print(f"{ot} mi:{mi}, check-mi:{is_none_or_nan_zero(mi)}")
+
             if not is_none_or_nan(sys_df.loc[i, 'parent_system_id']) \
                 and is_none_or_nan_zero(str(sys_df.loc[i, 'composition_expression'])) \
                 and is_none_or_nan_zero(str(sys_df.loc[i, 'meter_id'])):
@@ -222,7 +229,7 @@ class DataFlow(object):
 
                 sys_df.loc[i, "node_type"] = 'POV'       
                 sys_df.loc[i, "node_id"] = node_id        
-                logger.debug(f"[POV] ===== [{sys_df.loc[i, 'name_x']}]")
+                logger.debug(f"[POV] ===== ID [{sys_df.loc[i, 'id_x']}] [{sys_df.loc[i, 'name_x']}]")
 
         logger.debug("======================= none-virtual energy system(node_data_points) =========================")
         # data system which has data(kwh), defined as hierachy.node_datapoint(data_type==energy) and energy.energy_datapoint                
@@ -348,7 +355,7 @@ class DataFlow(object):
                     # 为了composition_expression能够使用node_ref_id,必须创建此datapoint
                     sys_df.loc[i, "component"] = 1       
 
-                logger.debug(f"[ENERGY DATAPOINT] ===== [{sys_df.loc[i, 'name_x']}]")              
+                logger.debug(f"[ENERGY DATAPOINT] ===== ID [{sys_df.loc[i, 'id_x']}] [{sys_df.loc[i, 'name_x']}]")              
 
         logger.debug("======================= virtual system(node_data_points) =========================")
         # virtual system which has data(kwh) calculated by expression, it also take as data virtual system, 
@@ -516,7 +523,7 @@ class DataFlow(object):
                     sys_df.loc[i, "node_ref_id"] = node_ref_id                    
                     sys_df.loc[i, "data_type"] = 'VIRTUALDATAPOINT'   
 
-                logger.debug(f"[Virtual] ===== [{sys_df.loc[i, 'name_x']}]")                 
+                logger.debug(f"[Virtual] ===== ID [{sys_df.loc[i, 'id_x']}] [{sys_df.loc[i, 'name_x']}]")                 
 
         
     
