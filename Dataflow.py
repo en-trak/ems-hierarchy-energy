@@ -211,10 +211,26 @@ class DataFlow(object):
             #     print(f"{ot} mi:{mi}, check-mi:{is_none_or_nan_zero(mi)}")
 
             if not is_none_or_nan(sys_df.loc[i, 'parent_system_id']) \
-                and is_none_or_nan_zero(str(sys_df.loc[i, 'composition_expression'])) \
-                and is_none_or_nan_zero(str(sys_df.loc[i, 'meter_id'])):
-                # and is_none_or_nan(sys_df.loc[i, 'source_key']):
-                # 如果meter_id是空打，而sourckey非空，为脏数据，可以ignore
+                and is_none_or_nan_zero(str(sys_df.loc[i, 'composition_expression'])):
+                # and is_none_or_nan_zero(str(sys_df.loc[i, 'meter_id'])):
+                # and is_none_or_nan(sys_df.loc[i, 'source_key']):               
+
+                child_df = sys_df[sys_df['parent_system_id'] == sys_df.loc[i, 'id_x']]
+                # has child, this should be POV
+                if child_df.shape[0] > 0: 
+                    # somtetime it has configed to meterid or source key, it's not right config
+                    mi = str(sys_df.loc[i, 'meter_id'])
+                    if not is_none_or_nan_zero(mi):
+                        logger.warning(f"POV has meterID [{mi}], ID [{sys_df.loc[i, 'id_x']}] [{sys_df.loc[i, 'name_x']}]")
+
+                    sk = sys_df.loc[i, 'source_key']
+                    if not is_none_or_nan_zero(sk):
+                        logger.warning(f"POV has sourcekey [{sys_df.loc[i, 'source_key']}], ID [{sys_df.loc[i, 'id_x']}] [{sys_df.loc[i, 'name_x']}]")                                                
+                else:
+                    # if not POV, continue to next
+                    continue
+                
+
                 node_id = 0
 
                 if self.simulation:
@@ -235,12 +251,12 @@ class DataFlow(object):
         # data system which has data(kwh), defined as hierachy.node_datapoint(data_type==energy) and energy.energy_datapoint                
         for i in range(len(sys_df)):
             if not is_none_or_nan(sys_df.loc[i, 'meter_id']) \
-                and not is_none_or_nan(sys_df.loc[i, 'source_key'] \
-                and len(str(sys_df.loc[i, 'source_key'])) > 0):
-                # and len(sys_df.loc[i, 'source_key']) > 0):
+                and not is_none_or_nan_zero(sys_df.loc[i, 'source_key']):
+                # and len(sys_df.loc[i, 'source_key']) > 0):       
 
                 meter_id = sys_df.loc[i, 'meter_id']
                 source_key = sys_df.loc[i, 'source_key']
+                sys_name = sys_df.loc[i, 'name_x']
 
                 _df = sys_df[(sys_df['meter_id']==meter_id) & \
                             (sys_df['source_key']==source_key) & \
@@ -262,7 +278,7 @@ class DataFlow(object):
                         # 数据节点用sourcekey作为它的name，如果是虚拟数据节点，因为没有sourckey，只能用system name作为它的name
                         _energy_datapoint_id = self.energy.create_new_datapoint(_ref_id, source_key, meter_id) 
                     else:
-                        logger.warning(f"not found abnormal system:[{_ref_id}] name:[{name}] in energy.datapoint")
+                        logger.warning(f"[ENERGY DATAPOINT] ===== ID [{sys_df.loc[i, 'id_x']}] not found kwh system:[{_ref_id}] name:[{name}] in energy.datapoint")
 
                 if _df.shape[0] >= 1:
                     # print(_df) parent_system_id/meter_id/use_system_id/.. are 1125.0 has xxx.0,need fix?
@@ -279,20 +295,32 @@ class DataFlow(object):
                     _df2 = _df[(~pd.isnull(_df['id_x'])) & (~pd.isnull(_df['id_y']))]            
 
                     if _df2.shape[0] == 0:
-                        logger.warning(f"meter:[{int(meter_id)}] source_key:[{source_key}] dosnt find right datapoint which has datapoint.id")
+                        logger.warning(f"[ENERGY DATAPOINT] ===== ID [{sys_df.loc[i, 'id_x']}] meter:[{int(meter_id)}] source_key:[{source_key}] name: [{sys_name}] dosnt find energy_datapoint.id")
                         _energy_datapoint_id = None
                         _ref_id = None
-
-                    if _df2.shape[0] >= 1:    
                         # 当前这个system在energy_datapoint里边没找到记录，
                         # 则取相同meterid和sourcekey的system对应的第一个energy_datapoint的记录   
-                        if is_none_or_nan(sys_df.iloc[i]['id_y']):
-                            _ref_id = _df2.iloc[0]['id_x']
-                            _energy_datapoint_id = _df2.iloc[0]['id_y']
-                        else:
-                            # 同一个meter，同一个sourckey在energy_datapoint里有可能存在多个记录
-                            _ref_id = sys_df.iloc[i]['id_x']
-                            _energy_datapoint_id = sys_df.iloc[i]['id_y']
+                        _df3 = sys_df[(sys_df['meter_id']==meter_id) & \
+                            (sys_df['source_key']==source_key)] 
+                    
+                        for _, row in _df3.iterrows():
+                            if not is_none_or_nan(row['id_y']):
+                                _energy_datapoint_id = row['id_y']
+                                _ref_id = row['ref_id']
+                                logger.info(f"[ENERGY DATAPOINT] ===== ID [{sys_df.loc[i, 'id_x']}] will use sysID:[{_ref_id}] with energy_datapoint.id:{_energy_datapoint_id}")
+                                break
+                        
+                        if _energy_datapoint_id is None:
+                            logger.warning(f"[ENERGY DATAPOINT] ===== ID [{sys_df.loc[i, 'id_x']}] didn't find any energy.datapoint_id for replace it.")
+                        
+                        del _df3
+                        
+
+                    if _df2.shape[0] >= 1:                           
+                        # 同一个meter，同一个sourckey在energy_datapoint里有可能存在多个记录
+                        # 取当前对应的energy.datapoint.id
+                        _ref_id = sys_df.iloc[i]['id_x']
+                        _energy_datapoint_id = sys_df.iloc[i]['id_y']
 
                     del _df2
                         
