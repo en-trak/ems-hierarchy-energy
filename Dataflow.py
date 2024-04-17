@@ -84,24 +84,24 @@ class DataFlow(object):
 
         new_names = {'id_x': 'company_id', 'id_y': 'tenant_id', 'name_x': 'company', "code": 'company_code'}
         tenant_df = tenant_df.rename(columns=new_names)
-        tenant_df.to_csv(f"{site_path}/tenant_df.csv")
+        # tenant_df.to_csv(f"{site_path}/tenant_df.csv")
 
         # logger.info("---------------Tenant-----------------")
         # logger.info(tenant_df[:3])
 
         sys_df = self.ems.systems(code=self.code)
-        sys_df.to_csv(f"{site_path}/sys_df.csv")
+        # sys_df.to_csv(f"{site_path}/sys_df.csv")
 
         dp = self.energy.dataPoint(columns = ["id", "ref_id", "name"])
-        dp.to_csv(f"{site_path}/dp.csv")
+        # dp.to_csv(f"{site_path}/dp.csv")
 
         sys_dp_df = pd.merge(sys_df, dp, how="left", left_on="id", right_on="ref_id")
-        sys_dp_df.to_csv(f"{site_path}/sys_dp_df.csv")
+        # sys_dp_df.to_csv(f"{site_path}/sys_dp_df.csv")
         # logger.info("---------------System with datapoint-----------------")
         # logger.info(sys_dp_df[:1])
 
         result_df = pd.merge(sys_dp_df, tenant_df, how="left", left_on="company_id", right_on="company_id")
-        result_df.to_csv(f"{site_path}/result_df.csv")
+        # result_df.to_csv(f"{site_path}/result_df.csv")
         # logger.info("---------------System with datapoint, tenant-----------------")
         # logger.info(result_df[:8])
 
@@ -251,8 +251,15 @@ class DataFlow(object):
         # data system which has data(kwh), defined as hierachy.node_datapoint(data_type==energy) and energy.energy_datapoint                
         for i in range(len(sys_df)):
             if not is_none_or_nan(sys_df.loc[i, 'meter_id']) \
-                and not is_none_or_nan_zero(sys_df.loc[i, 'source_key']):
-                # and len(sys_df.loc[i, 'source_key']) > 0):       
+                and not is_none_or_nan_zero(sys_df.loc[i, 'source_key']):                
+                # some system has meter_id and source_key and also has children systems, this is wrong config, print them out
+                # and ignore them
+                child_df = sys_df[sys_df['parent_system_id'] == sys_df.loc[i, 'id_x']]
+                # has child, this should be POV
+                if child_df.shape[0] > 0:                    
+                    logger.error(f"[ENERGY DATAPOINT] ===== ID [{sys_df.loc[i, 'id_x']}] with sourcekey and meterid, but it has children systems!!! wrong config.") 
+                    continue                
+
 
                 meter_id = sys_df.loc[i, 'meter_id']
                 source_key = sys_df.loc[i, 'source_key']
@@ -391,8 +398,20 @@ class DataFlow(object):
         pattern = re.compile(r"{id_(\d+)}")
         for i in range(len(sys_df)):
             if not is_none_or_nan(sys_df.loc[i, 'parent_system_id']) \
-                and not is_none_or_nan(sys_df.loc[i, 'composition_expression']) \
-                and '{' in str(sys_df.loc[i, 'composition_expression']):
+                and not is_none_or_nan(sys_df.loc[i, 'composition_expression']):
+                
+                if '{' not in str(sys_df.loc[i, 'composition_expression']):
+                    logger.warning(f"[Virtual] ===== ID [{sys_df.loc[i, 'id_x']}] it has no composition_expression.") 
+                    continue
+                
+                # some virtual system has children systems, this is wrong config, print them out
+                # and ignore them
+                child_df = sys_df[sys_df['parent_system_id'] == sys_df.loc[i, 'id_x']]
+                # has child, this should be POV
+                if child_df.shape[0] > 0:                    
+                    logger.error(f"[Virtual] ===== ID [{sys_df.loc[i, 'id_x']}] but it has children systems!!! wrong config.") 
+                    continue 
+
                 # 更新composition_expression里边打id_xxx为'node_ref_id'
                 try:
                     self.replace_expression_id(sys_df, i)
