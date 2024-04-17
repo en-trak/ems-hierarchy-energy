@@ -247,7 +247,7 @@ class DataFlow(object):
                 sys_df.loc[i, "node_id"] = node_id        
                 logger.debug(f"[POV] ===== ID [{sys_df.loc[i, 'id_x']}] [{sys_df.loc[i, 'name_x']}]")
 
-        logger.debug("======================= none-virtual energy system(node_data_points) =========================")
+        logger.debug("======================= none-virtual energy kwh system(node_data_points) =========================")
         # data system which has data(kwh), defined as hierachy.node_datapoint(data_type==energy) and energy.energy_datapoint                
         for i in range(len(sys_df)):
             if not is_none_or_nan(sys_df.loc[i, 'meter_id']) \
@@ -398,12 +398,12 @@ class DataFlow(object):
         pattern = re.compile(r"{id_(\d+)}")
         for i in range(len(sys_df)):
             if not is_none_or_nan(sys_df.loc[i, 'parent_system_id']) \
-                and not is_none_or_nan(sys_df.loc[i, 'composition_expression']):
+                and not is_none_or_nan_zero(str(sys_df.loc[i, 'composition_expression'])):
                 
                 if '{' not in str(sys_df.loc[i, 'composition_expression']):
-                    logger.warning(f"[Virtual] ===== ID [{sys_df.loc[i, 'id_x']}] it has no composition_expression.") 
+                    logger.warning(f"[Virtual] ===== ID [{sys_df.loc[i, 'id_x']}] it has no 'id_xxx' in composition_expression.") 
                     continue
-                
+
                 # some virtual system has children systems, this is wrong config, print them out
                 # and ignore them
                 child_df = sys_df[sys_df['parent_system_id'] == sys_df.loc[i, 'id_x']]
