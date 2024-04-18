@@ -47,7 +47,9 @@ from pathlib import Path
 site_path = f"./output/{code}"
 if not Path(f"{site_path}").is_dir(): 
     os.makedirs(site_path)
-logging.basicConfig(filename=f"{site_path}/{code}.log", level=logging.DEBUG)
+
+# Set the logging level to capture WARNING and above (including ERROR)
+logging.basicConfig(filename=f"{site_path}/{code}.log", level=logging.WARNING)
 
 # Create a logger for your application
 logger = logging.getLogger(__name__)
