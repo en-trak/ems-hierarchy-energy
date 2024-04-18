@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 import xml.etree.ElementTree as ET
 from collections import defaultdict
-from common import is_none_or_nan
+from common import is_none_or_nan, is_none_or_nan_zero
 
 
 class EMS:
@@ -130,7 +130,7 @@ class EMS:
             if not is_none_or_nan(row["component_of_id"]):
                 child_node["component_of_id"] = row["component_of_id"]
 
-            if not is_none_or_nan(row["composition_expression"]):
+            if not is_none_or_nan_zero(row["composition_expression"]):
                 child_node["expression"] = row["composition_expression"]
 
             if not is_none_or_nan(row["source_key"]) and len(row["source_key"]) > 0:
