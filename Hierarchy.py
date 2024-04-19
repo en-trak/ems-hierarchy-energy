@@ -5,14 +5,15 @@ from sqlalchemy import create_engine, text
 import xml.etree.ElementTree as ET
 from Energy import Energy
 import uuid
-from common import logger, zeroUUID, is_none_or_nan, readOption
+from common import is_none_or_nan, readOption
 
 class Hierarchy:
     simulation_relations_df = None
     simulation_sys_df = None
     simulation = False
 
-    def __init__(self, host="localhost", port=5432, database="hierarchy", user="hierarchy", password="hierarchy", simulation=False):        
+    def __init__(self, host="localhost", port=5432, database="hierarchy", user="hierarchy", password="hierarchy", simulation=False, logger=None):        
+        self.logger = logger
         # Construct the connection string
         connection_string = f"postgresql://{user}:{password}@{host}:{port}/{database}"
         # Create the engine
@@ -174,7 +175,7 @@ class Hierarchy:
                     WHERE id = '{child_node["id"]}'
                     """
                     
-                    # logger.debug(f"[{node['id']}]: {sql}")
+                    # self.logger.debug(f"[{node['id']}]: {sql}")
 
                     name_df = pd.read_sql_query(sql, self.engine)                  
 
@@ -224,7 +225,7 @@ class Hierarchy:
                     if purge:
                         self.purgeNodePov(id = f'{child_node["id"]}')
 
-                # logger.debug(child_node["name"])
+                # self.logger.debug(child_node["name"])
                 children.append(child_node)
 
                 if purge:
@@ -312,7 +313,7 @@ class Hierarchy:
                 name_df = self.simulation_sys_df[self.simulation_sys_df['node_id']==str_child_node_id]
                 child_node["name"] = name_df["name_x"].values[0]
 
-            # logger.debug(child_node["name"])
+            # self.logger.debug(child_node["name"])
             children.append(child_node)            
 
         node["children"] = children
@@ -426,13 +427,13 @@ class Hierarchy:
             child_type_level = NODE_TYPE_LEVEL[child_type]
 
             # 默认把tenant_id作为所有节点的父节点
-            parent_id = row['tenant_id'] #zeroUUID()
+            parent_id = row['tenant_id']
 
             parent_type_level = child_type_level + 1 if (child_type_level + 1) < len_node_typeLevels else child_type_level                
             parent_type = NODE_TYPE[parent_type_level]
             
             if not components_binding and row['component'] == 1:
-                logger.debug(f"ignore component child_id in relations:[{child_id}]")
+                self.logger.debug(f"ignore component child_id in relations:[{child_id}]")
                 continue
             
             if not is_none_or_nan(row['parent_system_id']):
@@ -451,7 +452,7 @@ class Hierarchy:
                 if child_type_level > parent_type_level:
                     error_info = f"child_type:{child_type} child_id:[{child_id}] should under parent_type:{parent_type} parent_id:[{parent_id}]" 
                     # raise ValueError(error_info)
-                    logger.warning(error_info)
+                    self.logger.warning(error_info)
                     continue
                 
                 # Create a new row as a Series (dictionary-like)
@@ -483,9 +484,9 @@ class Hierarchy:
                 '''
                 with self.engine.connect() as connection:                
                     return_id = connection.execute(sqlInsert).fetchone()[0]                        
-                    logger.debug(f"{flag} Inserted [{return_id}]")
+                    self.logger.debug(f"{flag} Inserted [{return_id}]")
 
-                logger.debug(f"{flag} Inserted child_id:[{child_id}]")
+                self.logger.debug(f"{flag} Inserted child_id:[{child_id}]")
                 # print(f"{flag} Inserted child_id:[{child_id}]")
             
 
@@ -552,10 +553,10 @@ class Hierarchy:
         }
 
         insert_sql = mapSqlInsert[node_type]
-        # logger.debug(f"=====================[{node_type}]===========================")
+        # self.logger.debug(f"=====================[{node_type}]===========================")
         # 执行SQL语句并获取新创建数据点的ID
         if node_type == "DATAPOINT":
-            # logger.debug(f"---- create node: {node_type}, sql={sql} ----")            
+            # self.logger.debug(f"---- create node: {node_type}, sql={sql} ----")            
             dataDF = pd.read_sql_query(mapSqlCheck[node_type], self.engine)
             if dataDF.shape[0] > 0 and not pd.isnull(dataDF['id'].iloc[0]):
                 return dataDF['id'].iloc[0], dataDF['ref_id'].iloc[0]        
@@ -568,7 +569,7 @@ class Hierarchy:
                         node_datapoint_id, ref_id = connection.execute(insert_sql).fetchone()[:2]
                         quit = True                        
                         if toDelete:
-                            logger.debug(f"component systme, node type: {node_type} desc: {desc} inserted after remove the old data in node_data_points")
+                            self.logger.debug(f"component systme, node type: {node_type} desc: {desc} inserted after remove the old data in node_data_points")
                     except Exception:
                         # 如果插入失败，说明已经有enerngy_datapoin存在了，
                         # 1: 直接提取存对应的node_data_points.id 和 node_data_points.ref_id

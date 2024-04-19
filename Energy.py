@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 import uuid
 from enum import Enum
-from common import zeroUUID, logger
+from common import zeroUUID
 
 # Enum of meter defined in energy_meter.proto file
 class DataType(Enum):
@@ -53,7 +53,8 @@ class Energy:
     }  
    
 
-    def __init__(self, host="localhost", port=5432, database="energy", user="energy", password="energy"):    
+    def __init__(self, host="localhost", port=5432, database="energy", user="energy", password="energy", logger = None):    
+        self.logger = logger
         # Construct the connection string
         connection_string = f"postgresql://{user}:{password}@{host}:{port}/{database}"
         # Create the engine
@@ -177,7 +178,7 @@ class Energy:
         elif meter_type == MeterType.BMS:
             pass
         else:
-            logger.info("no code for meter type: {}".format(meter_type))
+            # self.logger.info("no code for meter type: {}".format(meter_type))
             return None
 
         new_id = uuid.uuid4()

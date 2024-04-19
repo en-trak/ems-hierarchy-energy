@@ -10,7 +10,7 @@ import uuid
 import logging
 import yaml
 
-def readOption(options='database.db1.host', config_path='config.yaml'):
+def readOption(options='database.db1.host', config_path='config.yaml', logger=None):
   """
   Reads the YAML configuration file and returns the value for the specified option.
 
@@ -39,20 +39,6 @@ def readOption(options='database.db1.host', config_path='config.yaml'):
   except yaml.YAMLError as e:
     logger.error(f"Error: parsing YAML configuration file: {e}")
   return None
-
-code = readOption("code")
-# Configure logging to write to a file named "xxx.log"
-import os
-from pathlib import Path
-site_path = f"./output/{code}"
-if not Path(f"{site_path}").is_dir(): 
-    os.makedirs(site_path)
-
-# Set the logging level to capture WARNING and above (including ERROR)
-logging.basicConfig(filename=f"{site_path}/{code}.log", level=logging.WARNING)
-
-# Create a logger for your application
-logger = logging.getLogger(__name__)
 
 
 STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC = "energy_virtual_datapoint_grpc"

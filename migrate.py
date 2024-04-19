@@ -9,14 +9,18 @@ from Hierarchy import Hierarchy
 from Dataflow import DataFlow
 
 import xml.etree.ElementTree as ET
-from common import readOption, logger
+from common import readOption
+import os
+from pathlib import Path
+import logging
 
-def main():
+def Migrate(code, simulation = True, purgeRelations = False, logger=None):       
+    logger.info(f"====================== Finished {code} ==========================")
 
-    simulation = True
-    purgeRelations = False
+    simulation = simulation
+    purgeRelations = purgeRelations
 
-    code = readOption("code")
+    # code = readOption("code")
     components_binding = readOption("components_binding")        
     host=readOption("databases.organization.host")
     port=readOption("databases.organization.port")
@@ -36,7 +40,7 @@ def main():
     user=readOption("databases.hierarchy.username")
     password=readOption("databases.hierarchy.password")
 
-    hr = Hierarchy(host=host, port=port, user=user, password=password, database=database)
+    hr = Hierarchy(host=host, port=port, user=user, password=password, database=database,logger=logger)
     
     # 
     if not simulation:
@@ -52,14 +56,14 @@ def main():
 
     
     # generate tenant tree in dataflow
-    dataFlow = DataFlow(code, components_binding, simulation=simulation)
+    dataFlow = DataFlow(code, components_binding, simulation=simulation, logger=logger)
     df = dataFlow.PreparingData()
     # df = dataFlow.LoadData()
     logger.info("====================== create_nodes_and_datapoints ==========================")
     dataFlow.create_nodes_and_datapoints(df, tenant.id.values[0])
     # export the df to csv file
     # the node_type is 'unknown' means they will not be in hierarchy tree
-  
+
     site_path = f"./output/{code}"    
     if simulation:
         srd = dataFlow.hr.simulation_relations_df
@@ -79,7 +83,7 @@ def main():
     else:        
         srd = dataFlow.hr.simulation_relations_df
         if srd.shape[0] == 0:
-            logger.error("Simulation is empty!!! It will no new_{code}.xml generate!!!")            
+            logger.error(f"Simulation is empty!!! It will no new_{code}.xml generate!!!")            
         else:
             site_node_id = srd[srd['parent_type']=='SITE']['parent_id'].iloc[0]
             
@@ -110,7 +114,29 @@ def main():
     ems.SaveToXml(companyTree, f"{site_path}/{code}_system.xml")
         # logger.debug(companyTree)
 
-    logger.info("====================== DONE ==========================")
+    logger.info(f"====================== Finished {code} ==========================")
+
+def main():
+    # Define the logger outside the loop
+    logger = logging.getLogger(__name__)
+    codes = readOption("codes")
+    codes_list = codes.split(",")
+    def MigrateSites(codes_list = None):
+        for code in codes_list:
+            site_path = f"./output/{code}"
+            if not Path(f"{site_path}").is_dir(): 
+                os.makedirs(site_path)              
+    
+            # Configure logging specific to this iteration
+            logger.handlers = []  # Clear any existing handlers
+            logger.setLevel(logging.WARNING)
+            handler = logging.FileHandler(filename=f"{site_path}/{code}.log")
+            handler.setLevel(logging.WARNING)
+            logger.addHandler(handler)
+
+            Migrate(code, simulation = True, purgeRelations = False, logger=logger)
+
+    MigrateSites(codes_list)
     
     
 if __name__ == "__main__":
