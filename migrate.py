@@ -15,7 +15,7 @@ from pathlib import Path
 import logging
 
 def Migrate(code, simulation = True, purgeRelations = False, logger=None):       
-    logger.info(f"====================== Finished {code} ==========================")
+    logger.info(f"====================== Migrate Site {code} ==========================")
 
     simulation = simulation
     purgeRelations = purgeRelations
