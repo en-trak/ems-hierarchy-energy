@@ -12,7 +12,7 @@ https://entrak.atlassian.net/browse/TEP-4560
 
 # development & deployment
 $ ems.ipynb for functionality testing when developing
-$ Run python test.py for testing or deploying
+$ Run python migrate.py for migration
 
 # ./output
 there are two sites xml for comparing result

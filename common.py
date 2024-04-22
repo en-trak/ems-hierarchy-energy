@@ -10,7 +10,7 @@ import uuid
 import logging
 import yaml
 
-def readOption(options='database.db1.host', config_path='config.yaml'):
+def readOption(options='database.db1.host', config_path='config.yaml', logger=None):
   """
   Reads the YAML configuration file and returns the value for the specified option.
 
@@ -40,13 +40,6 @@ def readOption(options='database.db1.host', config_path='config.yaml'):
     logger.error(f"Error: parsing YAML configuration file: {e}")
   return None
 
-code = readOption("code")
-# Configure logging to write to a file named "xxx.log"
-logging.basicConfig(filename=f"{code}.log", level=logging.DEBUG)
-
-# Create a logger for your application
-logger = logging.getLogger(__name__)
-
 
 STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC = "energy_virtual_datapoint_grpc"
 
@@ -68,8 +61,22 @@ def zeroUUID():
 
   return zero_uuid
 
+def remove_extra_spaces(text):
+  """Removes extra spaces from a string, including leading, trailing, and multiple spaces between words.
+
+  Args:
+      text: The string to process.
+
+  Returns:
+      A new string with extra spaces removed.
+  """
+  return " ".join(text.split()).strip()
+
 def is_none_or_nan(value):
-  return value == 'nan' or value is None or pd.isnull(value)
+  return value is None or pd.isnull(value) or value == 'nan' or value == 'None' 
+
+def is_none_or_nan_zero(value):
+  return value is None or pd.isnull(value) or len(str(value)) == 0 or remove_extra_spaces(str(value)) == '' or value == 'nan' or value == 'None'
 
 def big_endian_uuid(uuid_str):
     # Convert string to UUID object

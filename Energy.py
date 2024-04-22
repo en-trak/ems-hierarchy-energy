@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 import uuid
 from enum import Enum
-from common import zeroUUID, logger
+from common import zeroUUID
 
 # Enum of meter defined in energy_meter.proto file
 class DataType(Enum):
@@ -53,7 +53,8 @@ class Energy:
     }  
    
 
-    def __init__(self, host="localhost", port=5432, database="energy", user="energy", password="energy"):    
+    def __init__(self, host="localhost", port=5432, database="energy", user="energy", password="energy", logger = None):    
+        self.logger = logger
         # Construct the connection string
         connection_string = f"postgresql://{user}:{password}@{host}:{port}/{database}"
         # Create the engine
@@ -109,6 +110,8 @@ class Energy:
         new_id = uuid.uuid4()
 
         status = self.DatapointStatus_name["ENABLE"]
+
+        name = name.replace("'", "''")
         sql = f"""
             INSERT INTO energy_datapoint (id, ref_id, name, meter_id, status)
             VALUES ('{new_id}', '{ref_id}', '{name}', '{meter_id}', {status})
@@ -129,7 +132,7 @@ class Energy:
         }
         """
         new_id = uuid.uuid4()
-
+        name = name.replace("'", "''")
         sql = f"""
             INSERT INTO energy_virtual_datapoint
             (id, tenant_id, datapoint_id, "name", "expression", status)
@@ -157,6 +160,10 @@ class Energy:
         dataDF = pd.read_sql_query(sql, self.engine)
         dataDF['id'] = dataDF['id'].astype(str)
 
+        if dataDF.empty:
+            # DataFrame is empty (has no rows)
+            return None
+
         return dataDF[columns]
     
     
@@ -171,13 +178,14 @@ class Energy:
         elif meter_type == MeterType.BMS:
             pass
         else:
-            logger.info("no code for meter type: {}".format(meter_type))
+            # self.logger.info("no code for meter type: {}".format(meter_type))
             return None
 
         new_id = uuid.uuid4()
         site_id = zeroUUID()
 
         status = self.DatapointStatus_name["ENABLE"]
+        name = name.replace("'", "''")
         sql = f"""
             INSERT INTO energy_meter (id, ref_id, name, status, dataflow_mode, site_id, data_type, meter_type, status)
             VALUES ('{new_id}', '{ref_id}', '{name}', {status}, {dataflow_mode}, {site_id}, {data_type}, {meter_type}, {meter_status})

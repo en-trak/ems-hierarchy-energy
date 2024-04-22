@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 import xml.etree.ElementTree as ET
 from collections import defaultdict
-from common import is_none_or_nan
+from common import is_none_or_nan, is_none_or_nan_zero
 
 
 class EMS:
@@ -77,21 +77,21 @@ class EMS:
             "type": "System",
             "name": f"{companyName} | {companyCode}",
             "companyID": companyID,
-            "meter_id": None,
-            "source_key": None,
+            # "meter_id": None,
+            # "source_key": None,
             "children": []
         }        
 
-        self._build_tree(root_node)
+        self._build_tree(root_node, companyID)
 
         return root_node
     
-    def _build_tree(self, node): 
+    def _build_tree(self, node, companyID): 
         parent_system_id = f"parent_system_id = {node['id']}"
         if node["id"] is None:
             parent_system_id = "parent_system_id is null"
         
-        companyID = node["companyID"]
+        # companyID = node["companyID"]
         sql = f"""
         select id, parent_system_id, component_of_id , name, meter_id, company_id, source_key, composition_expression  
         from energy_system
@@ -99,8 +99,7 @@ class EMS:
         and {parent_system_id}
         """        
 
-        relations_df = pd.read_sql_query(sql, self.engine)        
-        
+        relations_df = pd.read_sql_query(sql, self.engine)               
 
         children = []
         for i in range(relations_df.shape[0]):
@@ -121,20 +120,31 @@ class EMS:
                 "id": row["id"],
                 "name": row["name"],
                 "type": nodeType,
-                "source_key": row["source_key"],
-                "meter_id": row["meter_id"],
-                "component_of_id": row["component_of_id"],
-                "composition_expression": row["composition_expression"],    
-                "companyID": companyID,            
+                # "source_key": row["source_key"],
+                # "meter_id": row["meter_id"],
+                # "component_of_id": row["component_of_id"],
+                # "composition_expression": row["composition_expression"],    
                 "children": []
             }
+
+            if not is_none_or_nan(row["component_of_id"]):
+                child_node["component_of_id"] = row["component_of_id"]
+
+            if not is_none_or_nan_zero(row["composition_expression"]):
+                child_node["expression"] = row["composition_expression"]
+
+            if not is_none_or_nan(row["source_key"]) and len(row["source_key"]) > 0:
+                child_node["source_key"] = row["source_key"]
+
+            if not is_none_or_nan(row["meter_id"]):
+                child_node["meter_id"] = row["meter_id"]
 
             # logger.debug(child_node["name"])
             children.append(child_node)
 
         node["children"] = children
         for child in children:
-            self._build_tree(child)
+            self._build_tree(child, companyID)
 
     def SaveToXml(self, root, filename):
         """
