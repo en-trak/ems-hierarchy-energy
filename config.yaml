@@ -35,7 +35,17 @@ databases:
     username: city
     password: rXGajaRh4haudHiwBVFR
 
-code: "cdnis"    
+#codes: "cdnis,isf,hkcec,tts,vtchk,topform"    
+#codes: "swire,suss,starbucks" 
+#codes: "smartone,sais-sg,mtr"
+#codes: "HTHK,hgc,harrow-hk"
+#codes: "FXHK,esf,en-trak"
+#codes: "dragages,bochk,alibaba,AIAHK"
+
+codes: "isf"
+
+
+
 components_binding: False
 
 grpc:
