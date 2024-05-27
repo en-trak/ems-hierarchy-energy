@@ -94,6 +94,11 @@ class Energy:
 
         return dataDF[columns]
     
+    def updateRefIDofDataPoint(self, ref_id = 0, data_point_id = None):        
+        sql = f'''update energy_datapoint set ref_id = {int(ref_id)} where id = '{data_point_id}' '''         
+        with self.engine.connect() as connection:
+            connection.execute(sql)
+    
     
     def virtualDataPoint(self, columns = ["datapoint_id", "expression", "name"]):
         # Define the SQL query to select specific columns
@@ -165,6 +170,18 @@ class Energy:
             return None
 
         return dataDF[columns]
+    
+    def getVirtualDataPointByID(self, virtual_datapoint_id):        
+        sql = f'''SELECT id, tenant_id, datapoint_id, "name", "expression", status, is_solar
+            FROM energy_virtual_datapoint  where id = '{virtual_datapoint_id}'  '''         
+        dataDF = pd.read_sql_query(sql, self.engine)
+        dataDF['id'] = dataDF['id'].astype(str)
+
+        if dataDF.empty:
+            # DataFrame is empty (has no rows)
+            return None
+
+        return dataDF
     
     
     def create_new_meter(self, ref_id, name, 

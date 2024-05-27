@@ -17,7 +17,7 @@ from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 from google.protobuf import wrappers_pb2 as google_dot_protobuf_dot_wrappers__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1e\x65nergy_virtual_datapoint.proto\x12\x0bsbos.energy\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\x92\x02\n\x10VirtualDatapoint\x12\n\n\x02id\x18\x01 \x01(\x0c\x12\x11\n\ttenant_id\x18\x02 \x01(\x0c\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x12\n\nexpression\x18\x04 \x01(\t\x12\x33\n\x06status\x18\x05 \x01(\x0e\x32#.sbos.energy.VirtualDatapointStatus\x12,\n\x08is_solar\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.BoolValue\x12\x14\n\x0c\x64\x61tapoint_id\x18\x07 \x01(\x0c\x12\x0e\n\x06ref_id\x18\x08 \x01(\x03\x12\x34\n\x07\x63omplex\x18\t \x01(\x0e\x32#.sbos.energy.VirtualDatapointStatus\",\n\x1e\x43reateVirtualDatapointResponse\x12\n\n\x02id\x18\x01 \x01(\x0c\"\xb3\x01\n\x1cQueryVirtualDatapointRequest\x12\n\n\x02id\x18\x01 \x01(\x0c\x12\x11\n\ttenant_id\x18\x02 \x01(\x0c\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x12\n\nexpression\x18\x04 \x01(\t\x12\x33\n\x06status\x18\x05 \x01(\x0e\x32#.sbos.energy.VirtualDatapointStatus\x12\r\n\x05limit\x18\x06 \x01(\x03\x12\x0e\n\x06offset\x18\x07 \x01(\x03\"(\n\x1aGetVirtualDatapointRequest\x12\n\n\x02id\x18\x01 \x01(\x0c\"+\n\x1d\x44\x65leteVirtualDatapointRequest\x12\n\n\x02id\x18\x01 \x01(\x0c\"^\n\x12TestFormulaRequest\x12\x12\n\nexpression\x18\x01 \x01(\t\x12\x34\n\x07\x63omplex\x18\x02 \x01(\x0e\x32#.sbos.energy.VirtualDatapointStatus\"9\n\x13TestFormulaResponse\x12\x12\n\nexpression\x18\x01 \x01(\t\x12\x0e\n\x06result\x18\x02 \x01(\t*J\n\x16VirtualDatapointStatus\x12\x0f\n\x0bVDS_DEFAULT\x10\x00\x12\x0f\n\x0bVDS_DISABLE\x10\x01\x12\x0e\n\nVDS_ENABLE\x10\x02\x32\x83\x04\n\x16\x45nergyVirtualDatapoint\x12T\n\x06\x43reate\x12\x1d.sbos.energy.VirtualDatapoint\x1a+.sbos.energy.CreateVirtualDatapointResponse\x12?\n\x06Update\x12\x1d.sbos.energy.VirtualDatapoint\x1a\x16.google.protobuf.Empty\x12\x63\n\x15QueryVirtualDatapoint\x12).sbos.energy.QueryVirtualDatapointRequest\x1a\x1d.sbos.energy.VirtualDatapoint0\x01\x12M\n\x03Get\x12\'.sbos.energy.GetVirtualDatapointRequest\x1a\x1d.sbos.energy.VirtualDatapoint\x12P\n\x0bTestFormula\x12\x1f.sbos.energy.TestFormulaRequest\x1a .sbos.energy.TestFormulaResponse\x12L\n\x06\x44\x65lete\x12*.sbos.energy.DeleteVirtualDatapointRequest\x1a\x16.google.protobuf.EmptyB)Z\'github.com/en-trak/protobuf/sbos/energyb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1e\x65nergy_virtual_datapoint.proto\x12\x0bsbos.energy\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\x92\x02\n\x10VirtualDatapoint\x12\n\n\x02id\x18\x01 \x01(\x0c\x12\x11\n\ttenant_id\x18\x02 \x01(\x0c\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x12\n\nexpression\x18\x04 \x01(\t\x12\x33\n\x06status\x18\x05 \x01(\x0e\x32#.sbos.energy.VirtualDatapointStatus\x12,\n\x08is_solar\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.BoolValue\x12\x14\n\x0c\x64\x61tapoint_id\x18\x07 \x01(\x0c\x12\x0e\n\x06ref_id\x18\x08 \x01(\x03\x12\x34\n\x07\x63omplex\x18\t \x01(\x0e\x32#.sbos.energy.VirtualDatapointStatus\",\n\x1e\x43reateVirtualDatapointResponse\x12\n\n\x02id\x18\x01 \x01(\x0c\"2\n\x12PureCreateResponse\x12\x1c\n\x14virtual_datapoint_id\x18\x01 \x01(\x0c\"\xb3\x01\n\x1cQueryVirtualDatapointRequest\x12\n\n\x02id\x18\x01 \x01(\x0c\x12\x11\n\ttenant_id\x18\x02 \x01(\x0c\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x12\n\nexpression\x18\x04 \x01(\t\x12\x33\n\x06status\x18\x05 \x01(\x0e\x32#.sbos.energy.VirtualDatapointStatus\x12\r\n\x05limit\x18\x06 \x01(\x03\x12\x0e\n\x06offset\x18\x07 \x01(\x03\"(\n\x1aGetVirtualDatapointRequest\x12\n\n\x02id\x18\x01 \x01(\x0c\"+\n\x1d\x44\x65leteVirtualDatapointRequest\x12\n\n\x02id\x18\x01 \x01(\x0c\"^\n\x12TestFormulaRequest\x12\x12\n\nexpression\x18\x01 \x01(\t\x12\x34\n\x07\x63omplex\x18\x02 \x01(\x0e\x32#.sbos.energy.VirtualDatapointStatus\"9\n\x13TestFormulaResponse\x12\x12\n\nexpression\x18\x01 \x01(\t\x12\x0e\n\x06result\x18\x02 \x01(\t*J\n\x16VirtualDatapointStatus\x12\x0f\n\x0bVDS_DEFAULT\x10\x00\x12\x0f\n\x0bVDS_DISABLE\x10\x01\x12\x0e\n\nVDS_ENABLE\x10\x02\x32\xd1\x04\n\x16\x45nergyVirtualDatapoint\x12L\n\nPureCreate\x12\x1d.sbos.energy.VirtualDatapoint\x1a\x1f.sbos.energy.PureCreateResponse\x12T\n\x06\x43reate\x12\x1d.sbos.energy.VirtualDatapoint\x1a+.sbos.energy.CreateVirtualDatapointResponse\x12?\n\x06Update\x12\x1d.sbos.energy.VirtualDatapoint\x1a\x16.google.protobuf.Empty\x12\x63\n\x15QueryVirtualDatapoint\x12).sbos.energy.QueryVirtualDatapointRequest\x1a\x1d.sbos.energy.VirtualDatapoint0\x01\x12M\n\x03Get\x12\'.sbos.energy.GetVirtualDatapointRequest\x1a\x1d.sbos.energy.VirtualDatapoint\x12P\n\x0bTestFormula\x12\x1f.sbos.energy.TestFormulaRequest\x1a .sbos.energy.TestFormulaResponse\x12L\n\x06\x44\x65lete\x12*.sbos.energy.DeleteVirtualDatapointRequest\x1a\x16.google.protobuf.EmptyB)Z\'github.com/en-trak/protobuf/sbos/energyb\x06proto3')
 
 _VIRTUALDATAPOINTSTATUS = DESCRIPTOR.enum_types_by_name['VirtualDatapointStatus']
 VirtualDatapointStatus = enum_type_wrapper.EnumTypeWrapper(_VIRTUALDATAPOINTSTATUS)
@@ -28,6 +28,7 @@ VDS_ENABLE = 2
 
 _VIRTUALDATAPOINT = DESCRIPTOR.message_types_by_name['VirtualDatapoint']
 _CREATEVIRTUALDATAPOINTRESPONSE = DESCRIPTOR.message_types_by_name['CreateVirtualDatapointResponse']
+_PURECREATERESPONSE = DESCRIPTOR.message_types_by_name['PureCreateResponse']
 _QUERYVIRTUALDATAPOINTREQUEST = DESCRIPTOR.message_types_by_name['QueryVirtualDatapointRequest']
 _GETVIRTUALDATAPOINTREQUEST = DESCRIPTOR.message_types_by_name['GetVirtualDatapointRequest']
 _DELETEVIRTUALDATAPOINTREQUEST = DESCRIPTOR.message_types_by_name['DeleteVirtualDatapointRequest']
@@ -46,6 +47,13 @@ CreateVirtualDatapointResponse = _reflection.GeneratedProtocolMessageType('Creat
   # @@protoc_insertion_point(class_scope:sbos.energy.CreateVirtualDatapointResponse)
   })
 _sym_db.RegisterMessage(CreateVirtualDatapointResponse)
+
+PureCreateResponse = _reflection.GeneratedProtocolMessageType('PureCreateResponse', (_message.Message,), {
+  'DESCRIPTOR' : _PURECREATERESPONSE,
+  '__module__' : 'energy_virtual_datapoint_pb2'
+  # @@protoc_insertion_point(class_scope:sbos.energy.PureCreateResponse)
+  })
+_sym_db.RegisterMessage(PureCreateResponse)
 
 QueryVirtualDatapointRequest = _reflection.GeneratedProtocolMessageType('QueryVirtualDatapointRequest', (_message.Message,), {
   'DESCRIPTOR' : _QUERYVIRTUALDATAPOINTREQUEST,
@@ -87,22 +95,24 @@ if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
   DESCRIPTOR._serialized_options = b'Z\'github.com/en-trak/protobuf/sbos/energy'
-  _VIRTUALDATAPOINTSTATUS._serialized_start=855
-  _VIRTUALDATAPOINTSTATUS._serialized_end=929
+  _VIRTUALDATAPOINTSTATUS._serialized_start=907
+  _VIRTUALDATAPOINTSTATUS._serialized_end=981
   _VIRTUALDATAPOINT._serialized_start=109
   _VIRTUALDATAPOINT._serialized_end=383
   _CREATEVIRTUALDATAPOINTRESPONSE._serialized_start=385
   _CREATEVIRTUALDATAPOINTRESPONSE._serialized_end=429
-  _QUERYVIRTUALDATAPOINTREQUEST._serialized_start=432
-  _QUERYVIRTUALDATAPOINTREQUEST._serialized_end=611
-  _GETVIRTUALDATAPOINTREQUEST._serialized_start=613
-  _GETVIRTUALDATAPOINTREQUEST._serialized_end=653
-  _DELETEVIRTUALDATAPOINTREQUEST._serialized_start=655
-  _DELETEVIRTUALDATAPOINTREQUEST._serialized_end=698
-  _TESTFORMULAREQUEST._serialized_start=700
-  _TESTFORMULAREQUEST._serialized_end=794
-  _TESTFORMULARESPONSE._serialized_start=796
-  _TESTFORMULARESPONSE._serialized_end=853
-  _ENERGYVIRTUALDATAPOINT._serialized_start=932
-  _ENERGYVIRTUALDATAPOINT._serialized_end=1447
+  _PURECREATERESPONSE._serialized_start=431
+  _PURECREATERESPONSE._serialized_end=481
+  _QUERYVIRTUALDATAPOINTREQUEST._serialized_start=484
+  _QUERYVIRTUALDATAPOINTREQUEST._serialized_end=663
+  _GETVIRTUALDATAPOINTREQUEST._serialized_start=665
+  _GETVIRTUALDATAPOINTREQUEST._serialized_end=705
+  _DELETEVIRTUALDATAPOINTREQUEST._serialized_start=707
+  _DELETEVIRTUALDATAPOINTREQUEST._serialized_end=750
+  _TESTFORMULAREQUEST._serialized_start=752
+  _TESTFORMULAREQUEST._serialized_end=846
+  _TESTFORMULARESPONSE._serialized_start=848
+  _TESTFORMULARESPONSE._serialized_end=905
+  _ENERGYVIRTUALDATAPOINT._serialized_start=984
+  _ENERGYVIRTUALDATAPOINT._serialized_end=1577
 # @@protoc_insertion_point(module_scope)

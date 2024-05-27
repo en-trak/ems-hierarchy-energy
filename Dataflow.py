@@ -271,7 +271,8 @@ class DataFlow(object):
         # data system which has data(kwh), defined as hierachy.node_datapoint(data_type==energy) and energy.energy_datapoint                
         for i in range(len(sys_df)):
             if not is_none_or_nan(sys_df.loc[i, 'meter_id']) \
-                and not is_none_or_nan_zero(sys_df.loc[i, 'source_key']):                
+                and not is_none_or_nan_zero(sys_df.loc[i, 'source_key']) \
+                    and is_none_or_nan_zero(str(sys_df.loc[i, 'composition_expression'])):                
                 # some system has meter_id and source_key and also has children systems, this is wrong config, print them out
                 # and ignore them
                 child_df = sys_df[sys_df['parent_system_id'] == sys_df.loc[i, 'id_x']]
@@ -434,7 +435,7 @@ class DataFlow(object):
                     self.logger.error(f"[Virtual] SysID [{sys_df.loc[i, 'id_x']}] but it has children systems!!! wrong config.") 
                     continue 
 
-                # 更新composition_expression里边打id_xxx为'node_ref_id'
+                # 更新composition_expression里边的id_xxx为'node_ref_id'
                 replace_ok = True
                 try:
                     replace_ok = self.replace_expression_id(sys_df, i)
@@ -458,7 +459,30 @@ class DataFlow(object):
                 tenant_id_bytes = small_endian_uuid(str_tenant_id)
 
                 composition_expression = sys_df.loc[i, "composition_expression"]
-                sys_df.loc[i, "expression_replaced"] = 1                
+                sys_df.loc[i, "expression_replaced"] = 1    
+
+                virtualDatapointID = None
+                if self.simulation:
+                    virtualDatapointID = str(uuid.uuid4())             
+
+                # 请求energy serice to create the relations of virtual_datapoint
+                def RequestCreateVirtualDatapoint(kwargs):
+                    stub = kwargs['stub']                                                                                                    
+                    sid = sys_df.loc[i, 'id_x']        
+                    refid_int64 = sid
+                    
+                    name = sys_df.loc[i, "name_x"]
+
+                    self.logger.info(f"request create virtul datapoint for SysID:{sid} name:{name}")                        
+                        
+                    response = stub.PureCreate(vdpGrpcPb2.VirtualDatapoint(
+                                                                    ref_id = refid_int64, 
+                                                                    tenant_id = tenant_id_bytes,
+                                                                    name = name,
+                                                                    expression = composition_expression,
+                                        ))                            
+
+                    return response        
 
                 # create new datapoint for virtual system
                 if is_none_or_nan(ref_id):                                                       
@@ -468,30 +492,32 @@ class DataFlow(object):
                     # before creating, need purge the old data in that 3 tables
                     # missing the datapoint.id, how to purge the 3 tables?
                     
-
-                    # 请求energy serice to create the relations of virtual_datapoint
-                    def RequestCreateVirtualDatapoint(kwargs):
-                        stub = kwargs['stub']                                                                                    
-                
-                        sid = sys_df.loc[i, 'id_x']                    
-
-                        self.logger.info(f"create virtul datapoint for SysID:{sid} ")
-                        
-                        name = sys_df.loc[i, "name_x"] 
-                        response = stub.Create(vdpGrpcPb2.VirtualDatapoint(
-                                                                        tenant_id = tenant_id_bytes,
-                                                                        name = name,
-                                                                        expression = composition_expression,
-                                            ))                            
-
-                        return response
-                    
-                    # grpc request for updating energy_virtual_relationship
-                    virtualDatapointID = str(uuid.uuid4())
+                    # grpc request for updating energy_virtual_relationship                    
                     if not self.simulation:
-                        virtualDatapointID = run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, 
-                                                      grpcFunction=RequestCreateVirtualDatapoint, 
-                                                      logger=self.logger)
+                        response_data = run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, 
+                                                        grpcFunction=RequestCreateVirtualDatapoint, 
+                                                        logger=self.logger)
+                        # response = vdpGrpcPb2.PureCreateResponse()
+                        # response.ParseFromString(response_data)                        
+                        # virtualDatapointID = response.virtual_datapoint_id                        
+                        if response_data is None:
+                            continue
+
+                        serialized_data = response_data.SerializeToString()
+
+                        response = vdpGrpcPb2.PureCreateResponse()
+                        response.ParseFromString(serialized_data)
+                        
+                        uuid_virtualDatapointID = uuid.UUID(bytes=response.virtual_datapoint_id)
+                        virtualDatapointID = str(uuid_virtualDatapointID)
+
+                        sid = sys_df.loc[i, 'id_x']
+                        self.logger.info(f"created virtul datapoint for SysID:{sid} virtualDatapointID:{uuid_virtualDatapointID}")
+
+                        # use virtual datapoint.id -> datapoint.id -> set the ref_id to system.id
+                        vdp_df = self.energy.getVirtualDataPointByID(virtualDatapointID)
+                        datapoint_id = str(vdp_df['datapoint_id'].iloc[0])  
+                        self.energy.updateRefIDofDataPoint(ref_id = int(sys_df.loc[i, "id_x"]), data_point_id = datapoint_id)
                    
                     
                     # energy_datapint_id set to virtualDatapointID
@@ -500,24 +526,23 @@ class DataFlow(object):
                     # energy.data_point.id = hierarchy.node_data_points.data_id
                     # 2: virtual system
                     # energy.virtual_datapoint.id = hierarchy.node_data_points.data_id
-                    energy_datapint_id = virtualDatapointID        
-
                     sys_df.loc[i, "use_system_id"] = sys_df.loc[i, "id_x"]
-                    sys_df.loc[i, "use_datapoint_id"] = energy_datapint_id # this is used virtualDatapointID
+                    sys_df.loc[i, "use_datapoint_id"] = virtualDatapointID
                     sys_df.loc[i, "ref_id"] = sys_df.loc[i, "id_x"]
-                    sys_df.loc[i, "id_y"] = energy_datapint_id                    
+                    sys_df.loc[i, "id_y"] = virtualDatapointID                    
    
-                else:
-
+                else: 
+                    
                     # 更新已经存在的virtual_datapoint里边的expression
                     # self.energy.update_virtual_datapoint(energy_datapint_id, composition_expression)  
 
                     # 请求energy serice to update the relations of virtual_datapoint
                     def RequestUpdateVirtualDatapoint(kwargs):
                         stub = kwargs['stub']
-                        sid = sys_df.loc[i, 'id_x'] 
+                        sid = sys_df.loc[i, 'id_x']                                                                         
+                        refid_int64 = sid
                         vdp_df = self.energy.getVirtualDataPoint(energy_datapint_id, columns=["id", "status", "is_solar"])
-                        if is_none_or_nan(vdp_df):
+                        if vdp_df is None:
                             self.logger.warning(f"no RequestUpdateRelations request as -> SysID:{sid} getVirtualDataPoint return empty")
                             # 释放 dataframe 占用的内存
                             del vdp_df
@@ -526,7 +551,9 @@ class DataFlow(object):
                             gc.collect()
                             return None
                         
-                        id_of_virtual_datapoint = str(vdp_df['id'].iloc[0])
+                        id_of_virtual_datapoint = str(vdp_df['id'].iloc[0])       
+                        virtualDatapointID = id_of_virtual_datapoint                  
+
                         edid = sys_df.loc[i, "id_y"]
                         sid = sys_df.loc[i, 'id_x']
                         if is_none_or_nan(id_of_virtual_datapoint):                            
@@ -535,9 +562,9 @@ class DataFlow(object):
                             # 强制垃圾回收器释放内存
                             gc.collect()
 
-                            return None
+                            return virtualDatapointID
 
-                        self.logger.info(f"SysID:{sid} energy_datapint_id:[{edid}] id_of_virtual_datapoint:[{id_of_virtual_datapoint}]")
+                        # self.logger.info(f"SysID:{sid} energy_datapint_id:[{edid}] id_of_virtual_datapoint:[{id_of_virtual_datapoint}]")
                         
                         # id_of_virtual_datapoint = '16c85b2f-a614-45fb-91ff-6354c88e183b'
                         
@@ -553,7 +580,7 @@ class DataFlow(object):
                         # datapoint_id = energy_datapint_id           
                         datapoint_id_bytes = small_endian_uuid(energy_datapint_id)
 
-                        ref_id = sys_df.loc[i, "ref_id"]
+                        # ref_id = sys_df.loc[i, "ref_id"]
                         complex = 0 # reference to VirtualDatapointStatus defined in energy_virtual_datapoint.proto
 
                         import google.protobuf.wrappers_pb2 as wrappers
@@ -566,8 +593,8 @@ class DataFlow(object):
                                                                         expression = composition_expression,
                                                                         status = status,
                                                                         is_solar = protobuf_bool,
-                                                                        datapoint_id = datapoint_id_bytes,
-                                                                        ref_id = int(ref_id),
+                                                                        datapoint_id = datapoint_id_bytes,                                                                        
+                                                                        ref_id = refid_int64, 
                                                                         complex = complex
                                                                         ))
                         del vdp_df
@@ -575,39 +602,118 @@ class DataFlow(object):
                         # 强制垃圾回收器释放内存
                         gc.collect()
 
+                        self.logger.info(f"updated expression for SysID:{sid} energy_datapint_id:[{edid}] id_of_virtual_datapoint:[{id_of_virtual_datapoint}]")
+
+                        sys_df.loc[i, "use_system_id"] = sys_df.loc[i, "id_x"]
+                        sys_df.loc[i, "use_datapoint_id"] = virtualDatapointID
+                        sys_df.loc[i, "ref_id"] = sys_df.loc[i, "id_x"]
+                        sys_df.loc[i, "id_y"] = virtualDatapointID  # 因为本来id_y对应的是energy.datapoint.id,但是这里是virtual system，所以需要替换成对应的energy.virtual_datapoint.id
+
                         return response
                     
                     # grpc request for updating energy_virtual_relationship
 
                     if not self.simulation:
-                        run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, 
-                                 grpcFunction=RequestUpdateVirtualDatapoint, 
-                                 logger=self.logger )  
+                        create_new = False
+                        vdp_df = self.energy.getVirtualDataPoint(energy_datapint_id, columns=["id", "status", "is_solar", "datapoint_id"])
+                        
+                        if vdp_df.shape[0] != 0:
+                            virtual_datapoint_id = str(vdp_df['id'].iloc[0])
+                            node_dp_df = self.hr.nodeDataPointByDataID(data_id = virtual_datapoint_id)
+                            if node_dp_df.shape[0] == 0:
+                                create_new = True
+                        else:
+                            create_new = True
+
+                        if create_new:
+                            sid = sys_df.loc[i, 'id_x']
+                            self.logger.warning(f"Virtual sysID:{sid} has energy datapoint instance but it has no virtual datapoint instance")
+                            # 释放 dataframe 占用的内存
+                            del vdp_df
+
+                            # 强制垃圾回收器释放内存
+                            gc.collect()
+                            
+                            # 重现创建新的virtual datapoint instance
+                            response_data = run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, 
+                                                        grpcFunction=RequestCreateVirtualDatapoint, 
+                                                        logger=self.logger)
+                                              
+                            if response_data is None:
+                                continue
+
+                            serialized_data = response_data.SerializeToString()
+
+                            response = vdpGrpcPb2.PureCreateResponse()
+                            response.ParseFromString(serialized_data)
+                            
+                            uuid_virtualDatapointID = uuid.UUID(bytes=response.virtual_datapoint_id)
+                            virtualDatapointID = str(uuid_virtualDatapointID)
+
+                            
+                            self.logger.info(f"re-created virtul datapoint for SysID:{sid} virtualDatapointID:{uuid_virtualDatapointID}")
+
+                            # use virtual datapoint.id -> datapoint.id -> set the ref_id to system.id
+                            vdp_df = self.energy.getVirtualDataPointByID(virtualDatapointID)
+                            datapoint_id = str(vdp_df['datapoint_id'].iloc[0])  
+                            self.energy.updateRefIDofDataPoint(ref_id = int(sys_df.loc[i, "id_x"]), data_point_id = datapoint_id)
+
+                            sys_df.loc[i, "use_system_id"] = sys_df.loc[i, "id_x"]
+                            sys_df.loc[i, "use_datapoint_id"] = virtualDatapointID
+                            sys_df.loc[i, "ref_id"] = sys_df.loc[i, "id_x"]
+                            sys_df.loc[i, "id_y"] = virtualDatapointID  
+
+                        else:
+                            virtual_datapoint_id = str(vdp_df['id'].iloc[0])
+                            virtualDatapointID = virtual_datapoint_id
+                            node_dp_df = self.hr.nodeDataPointByDataID(data_id = virtual_datapoint_id)
+                            
+                            if node_dp_df.shape[0] == 0:
+                                sid = sys_df.loc[i, 'id_x']
+                                self.logger.error(f"failed update node for SysID:{sid}, datapoint_id:{energy_datapint_id} not found the node.datapoint instance by data_id!")    
+                                continue
+                            else:
+                                update_response = run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, 
+                                                       grpcFunction=RequestUpdateVirtualDatapoint, 
+                                                       logger=self.logger )  
+                                
+                                sys_df.loc[i, "node_type"] = 'DATAPOINT'
+                                sys_df.loc[i, "node_id"] = node_dp_df['id'].iloc[0]
+                                sys_df.loc[i, "node_ref_id"] = node_dp_df['ref_id'].iloc[0]                    
+                                sys_df.loc[i, "data_type"] = 'VIRTUALDATAPOINT'   
+
+                                self.logger.info(f"updated node for SysID:{sid} node_id:{node_id} node_ref_id:{node_ref_id}")
+                            
+                                continue
+                        
 
                     
                 # generate new VIRTUALDATAPOINT node on hierarchy
-                if sys_df.loc[i, "node_ref_id"] =='unknown' and not is_none_or_nan(energy_datapint_id) and replace_ok:  
+                if sys_df.loc[i, "node_ref_id"] =='unknown' \
+                    and not is_none_or_nan(virtualDatapointID) \
+                    and replace_ok:  
+
                     node_id, node_ref_id = None, None
                     if self.simulation:                           
                         node_id, node_ref_id = self.hr.create_simulate_node(node_type='DATAPOINT', 
                                                                 data_type="VIRTUALDATAPOINT", 
                                                                 name=sys_df.loc[i, 'name_x'], 
                                                                 desc = f"cid {sys_df.loc[i, 'company_id']} sid {sys_df.loc[i, 'id_x']}",                                                            
-                                                                data_id=energy_datapint_id,
+                                                                data_id=virtualDatapointID,
                                                                 ref_id=sys_df.loc[i, 'id_x'])                
                     else:
                         node_id, node_ref_id = self.hr.create_node(node_type='DATAPOINT', 
                                                             data_type="VIRTUALDATAPOINT", 
                                                             name=sys_df.loc[i, 'name_x'], 
                                                             desc = f"cid {sys_df.loc[i, 'company_id']} sid {sys_df.loc[i, 'id_x']}",                                                            
-                                                            data_id=energy_datapint_id)                
+                                                            data_id=virtualDatapointID)                
                             
                     sys_df.loc[i, "node_type"] = 'DATAPOINT'
                     sys_df.loc[i, "node_id"] = node_id
                     sys_df.loc[i, "node_ref_id"] = node_ref_id                    
                     sys_df.loc[i, "data_type"] = 'VIRTUALDATAPOINT'   
 
-                       
+                    self.logger.info(f"created node for SysID:{sid} node_id:{node_id} node_ref_id:{node_ref_id}")
 
         
     

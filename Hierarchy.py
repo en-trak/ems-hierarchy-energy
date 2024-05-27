@@ -11,6 +11,7 @@ class Hierarchy:
     simulation_relations_df = None
     simulation_sys_df = None
     simulation = False
+    energy = None
 
     def __init__(self, host="localhost", port=5432, database="hierarchy", user="hierarchy", password="hierarchy", simulation=False, logger=None):        
         self.logger = logger
@@ -25,9 +26,9 @@ class Hierarchy:
         user=readOption("databases.energy.username")
         password=readOption("databases.energy.password")
 
-        energy = Energy(host=host, port=port, user=user, password=password, database=database)
+        self.energy = Energy(host=host, port=port, user=user, password=password, database=database)
         
-        self.energy_dp = energy.dataPoint()        
+        self.energy_dp = self.energy.dataPoint()        
         
         self.simulation = simulation        
 
@@ -37,9 +38,15 @@ class Hierarchy:
 
         # Create the dataframe with empty columns
         self.simulation_relations_df = pd.DataFrame(columns=columns)
-            
 
     def nodeDataPointByDataID(self, data_id = None):        
+        sql = f'''SELECT id, data_type, ref_id from node_data_points where data_id = '{data_id}' ''' 
+        dataDF = pd.read_sql_query(sql, self.engine)
+        dataDF['id'] = dataDF['id'].astype(str)
+        
+        return dataDF    
+
+    def nodeDataPointIDByDataID(self, data_id = None):        
         sql = f'''SELECT id from node_data_points where data_id = '{data_id}' ''' 
         dataDF = pd.read_sql_query(sql, self.engine)
         dataDF['id'] = dataDF['id'].astype(str)
@@ -163,7 +170,7 @@ class Hierarchy:
                     "type": row["child_type"],
                     "name": "",
                     "data_id": "",
-                    "ref_id": "",
+                    "node_ref_id": "",
                     "system_id": "",
                     "children": []
                 }
@@ -172,13 +179,10 @@ class Hierarchy:
                 if child_node["type"] == "DATAPOINT":                   
                    
                     sql = f"""
-                    SELECT name, data_id, ref_id
+                    SELECT name, data_id, ref_id, data_type
                     FROM node_data_points
                     WHERE id = '{child_node["id"]}'
                     """
-                    
-                    # self.logger.debug(f"[{node['id']}]: {sql}")
-
                     name_df = pd.read_sql_query(sql, self.engine)       
                     if name_df.shape[0] == 0:
                         continue
@@ -186,14 +190,23 @@ class Hierarchy:
                     name_df["data_id"] = name_df["data_id"].astype(str)
                     name_df["ref_id"] = name_df["ref_id"].astype(str)
 
-                    child_node["ref_id"] = name_df["ref_id"].values[0]
+                    child_node["node_ref_id"] = name_df["ref_id"].values[0]
                     child_node["name"] = name_df["name"].values[0]    
                                     
                     data_id = name_df["data_id"].values[0]
 
                     child_node["data_id"] = data_id
-                    
 
+                    system_ref_id = "None"
+                    # if data_type is virtual system
+                    if name_df["data_type"].values[0] == "VIRTUALDATAPOINT":
+                        vdp_df = self.energy.getVirtualDataPointByID(data_id)    
+                        if vdp_df.shape[0] == 0:
+                            continue
+                        child_node["expression"] = vdp_df["expression"].values[0]
+                        child_node["type"] = "VIRTUAL_DATAPOINT"
+
+                        data_id = vdp_df["datapoint_id"].values[0]                        
                     
                     try:
                         system_ref_id = self.energy_dp[self.energy_dp['id'] == data_id]['ref_id'].values[0]
@@ -246,6 +259,10 @@ class Hierarchy:
             self._build_or_purge_tree(child, purge=purge)
 
     def TenantTree(self, tenantID, tenantName, tenantCode, purge=False):
+        # re-get the energy datapoint as some systems migrate
+        #  has updated the table's ref_id
+        self.energy_dp = self.energy.dataPoint()
+        
         # 定义根节点
         root_node = {
             "id": tenantID,            
@@ -307,6 +324,7 @@ class Hierarchy:
                 # if data_type is virtual system
                 if name_df["data_type"].values[0] == "VIRTUALDATAPOINT":
                     child_node["expression"] = name_df["composition_expression"].values[0]
+                    child_node["type"] = "VIRTUAL_DATAPOINT"
                 
 
             elif child_node["type"] == "SITE":
@@ -363,7 +381,7 @@ class Hierarchy:
                 child_element = ET.SubElement(parent_element, child["type"])
                 child_element.attrib["name"] = child["name"]
 
-                if child["type"] == "DATAPOINT":
+                if child["type"] == "DATAPOINT" or child["type"] == "VIRTUAL_DATAPOINT":
                     # 添加其他属性
                     for key, value in child.items():
                         if key not in ("id", "type", "name", "children"):   
@@ -585,7 +603,14 @@ class Hierarchy:
             # self.logger.debug(f"---- create node: {node_type}, sql={sql} ----")            
             dataDF = pd.read_sql_query(mapSqlCheck[node_type], self.engine)
             if dataDF.shape[0] > 0 and not pd.isnull(dataDF['id'].iloc[0]):
-                return dataDF['id'].iloc[0], dataDF['ref_id'].iloc[0]        
+                # return dataDF['id'].iloc[0], dataDF['ref_id'].iloc[0]    
+                # need remove old data as the data_id has changed 
+                try:
+                    node_datapoint_id = dataDF['id'].iloc[0]
+                    self.purgeNodeDataPoint(id = node_datapoint_id)
+                except Exception:
+                    self.logger.error(f"purge old data failed: data_id:{data_id}") 
+                    return False
 
             toDelete = False
             quit = False
@@ -605,13 +630,13 @@ class Hierarchy:
                         toDelete = True                      
 
                 if toDelete:
-                    # 必须node_data_points.id 跟 enerngy_datapoints.id是1 对 1 关系
-                    # 否在这个逻辑会有问题
+                    # 必须node_data_points.id 跟 enerngy_datapoints.id or energy_virtual_datapoint.id 是1 对 1 关系
+                    # 否则这个逻辑会有问题
                     try:
-                        node_datapoint_id = self.nodeDataPointByDataID(data_id=data_id)
+                        node_datapoint_id = self.nodeDataPointIDByDataID(data_id=data_id)
                         self.purgeNodeDataPoint(id = node_datapoint_id)
                     except Exception:
-                        self.logger.error(f"data_id:{data_id} type:{type(data_id)}") 
+                        self.logger.error(f"data_id:{data_id}") 
                         quit = True
                     
 
@@ -620,7 +645,17 @@ class Hierarchy:
             # print(f"---- create node: {node_type}, sql={sql} ----")            
             dataDF = pd.read_sql_query(mapSqlCheck[node_type], self.engine)
             if dataDF.shape[0] > 0 and not pd.isnull(dataDF['id'].iloc[0]):
-                return dataDF['id'].iloc[0]                        
+                # return dataDF['id'].iloc[0]    
+                # need remove old data as the data_id has changed 
+                try:
+                    node_id = dataDF['id'].iloc[0]
+                    if node_type == "SITE":
+                        self.purgeNodeSite(id = node_id)
+                    if node_type == "POV":
+                        self.purgeNodePov(id = node_id)
+                except Exception:
+                    self.logger.error(f"purge old data failed: node_id:{node_id}") 
+                                        
             
             with self.engine.connect() as connection:
                 try:

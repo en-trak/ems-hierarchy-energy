@@ -91,7 +91,7 @@ def Migrate(code, simulation = True, purgeRelations = False, logger=None):
             logger.debug("====================== TenantTree XML ==========================")    
             tenantTree = dataFlow.hr.TenantTree(tenant.id.values[0],
                                     tenant.name.values[0],
-                                    tenant.company_code.values[0],
+                                    tenant.company_code.values[0],                                    
                                     purge=False)
             # logger.debug(tenantTree)
             dataFlow.hr.SaveToXml(tenantTree, f"{site_path}/new_{code}.xml")   
