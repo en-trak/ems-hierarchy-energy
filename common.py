@@ -140,7 +140,7 @@ def LoadIniDataBase(filename, logger):
     logger.error(f"Missing key '{e}' in the configuration file.")
 
 
-def run_grpc(stub, grpcFunction, logger, **kwargs):
+def run_grpc(stub, system_id, grpcFunction, logger, **kwargs):
   response = None
   try:               
       host = readOption("grpc.energy.host")            
@@ -160,12 +160,12 @@ def run_grpc(stub, grpcFunction, logger, **kwargs):
       elif e.code() == grpc.StatusCode.UNAVAILABLE and 'Connection reset by peer' in e.details():
           logger.error("response grpc-error 2:{}".format(str(e)))             
       else:
-          logger.error("response grpc-error 3:{}".format(str(e)))
+          logger.error("SystemID {} ERROR:{}".format(system_id, str(e)))
 
       return None
-  # except Exception as e:                    
-  #     logger.error("response e-error:{}".format(str(e)))
-  #     return None
+  except Exception as e:                    
+      logger.error("response e-error:{}".format(str(e)))
+      return None
 
   return response
 

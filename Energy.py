@@ -167,7 +167,7 @@ class Energy:
 
         if dataDF.empty:
             # DataFrame is empty (has no rows)
-            return None
+            return pd.DataFrame()
 
         return dataDF[columns]
     
@@ -179,7 +179,7 @@ class Energy:
 
         if dataDF.empty:
             # DataFrame is empty (has no rows)
-            return None
+            return pd.DataFrame()
 
         return dataDF
     

@@ -209,9 +209,11 @@ class Hierarchy:
                         data_id = vdp_df["datapoint_id"].values[0]                        
                     
                     try:
-                        system_ref_id = self.energy_dp[self.energy_dp['id'] == data_id]['ref_id'].values[0]
+                        # system_ref_id = self.energy_dp[self.energy_dp['id'] == data_id]['ref_id'].values[0]
+                        dp_df = self.energy.getDataPointByID(data_id)
+                        system_ref_id = dp_df["ref_id"].values[0]
                     except:
-                        system_ref_id = "None"
+                        system_ref_id = "xxx"
                     
                     child_node["system_id"] = system_ref_id
 

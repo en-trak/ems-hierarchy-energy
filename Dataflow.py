@@ -125,13 +125,15 @@ class DataFlow(object):
         Returns:
             替换后的 DataFrame
         """        
-        row = df.iloc[i]
+        row = df.iloc[i]       
+        system_id = row['id_x'] 
         old_composition_expression = row['composition_expression']
         new_composition_expression = row['composition_expression']
         self.logger.info("Replace old expression: {}".format(old_composition_expression))
 
         replace_ok = True
    
+        id_list = []
         for match in re.finditer(r'{id_(\d+)}', old_composition_expression):
             id_xxx = match.group(1)
             node_ref_id = "xxxx"
@@ -139,7 +141,8 @@ class DataFlow(object):
                 node_ref_id = df.loc[df['id_x'] == int(id_xxx), 'node_ref_id'].values[0]
             else:
                 # Handle the case where no matching row is found (optional)
-                self.logger.warning(f"not found id_{str(id_xxx)}")   
+                id_list.append(str(id_xxx))
+                # self.logger.error(f"not found id_{str(id_xxx)}")   
                 replace_ok = False
                 continue
 
@@ -147,7 +150,9 @@ class DataFlow(object):
                 new_composition_expression = new_composition_expression.replace(match.group(0), "{id_"+str(node_ref_id)+"}")
         
 
-        if not replace_ok:
+        if not replace_ok:            
+            no_find_node_ref_id = list(set(id_list)) 
+            self.logger.error(f"[Virtual] SysID [{system_id}]'s expression, their component id_xxx has no node_ref_id, components id list: {no_find_node_ref_id}")
             self.logger.info("replace expression failed")       
             df.loc[i, 'composition_expression'] = old_composition_expression 
         else:
@@ -241,11 +246,11 @@ class DataFlow(object):
                     # somtetime it has configed to meterid or source key, it's not right config
                     mi = str(sys_df.loc[i, 'meter_id'])
                     if not is_none_or_nan_zero(mi):
-                        self.logger.warning(f"POV with meterID [{mi}] SysID:{sys_df.loc[i, 'id_x']}] System_name: [{sys_df.loc[i, 'name_x']}]")
+                        self.logger.error(f"POV with meterID [{mi}] SysID:{sys_df.loc[i, 'id_x']}] System_name: [{sys_df.loc[i, 'name_x']}]")
 
                     sk = sys_df.loc[i, 'source_key']
                     if not is_none_or_nan_zero(sk):
-                        self.logger.warning(f"POV with sourcekey [{sys_df.loc[i, 'source_key']}] SysID:{sys_df.loc[i, 'id_x']}] System_name: [{sys_df.loc[i, 'name_x']}]")                                                
+                        self.logger.error(f"POV with sourcekey [{sys_df.loc[i, 'source_key']}] SysID:{sys_df.loc[i, 'id_x']}] System_name: [{sys_df.loc[i, 'name_x']}]")                                                
                 else:
                     # if not POV, continue to next
                     continue
@@ -278,7 +283,7 @@ class DataFlow(object):
                 child_df = sys_df[sys_df['parent_system_id'] == sys_df.loc[i, 'id_x']]
                 # has child, this should be POV
                 if child_df.shape[0] > 0:                    
-                    self.logger.debug(f"[ENERGY DATAPOINT] SysID [{sys_df.loc[i, 'id_x']}] with sourcekey and meterid, but it has children systems!!! wrong config.") 
+                    self.logger.error(f"[ENERGY DATAPOINT] SysID [{sys_df.loc[i, 'id_x']}] with sourcekey and meterid, but it has children systems!!! wrong config.") 
                     continue                
 
 
@@ -323,7 +328,7 @@ class DataFlow(object):
                     _df2 = _df[(~pd.isnull(_df['id_x'])) & (~pd.isnull(_df['id_y']))]            
 
                     if _df2.shape[0] == 0:
-                        self.logger.debug(f"[ENERGY DATAPOINT] SysID [{sys_df.loc[i, 'id_x']}] meter:[{int(meter_id)}] source_key:[{source_key}] name: [{sys_name}] dosnt find energy_datapoint.id")
+                        self.logger.error(f"[ENERGY DATAPOINT] SysID [{sys_df.loc[i, 'id_x']}] meter:[{int(meter_id)}] source_key:[{source_key}] name: [{sys_name}] dosnt find energy_datapoint.id")
                         _energy_datapoint_id = None
                         _ref_id = None
                         # 当前这个system在energy_datapoint里边没找到记录，
@@ -424,7 +429,7 @@ class DataFlow(object):
                 self.logger.debug(f"[Virtual] SysID [{sys_df.loc[i, 'id_x']}] [{sys_df.loc[i, 'name_x']}]")          
 
                 if '{' not in str(sys_df.loc[i, 'composition_expression']):
-                    self.logger.warning(f"[Virtual] SysID [{sys_df.loc[i, 'id_x']}] it has no 'id_xxx' in composition_expression.") 
+                    self.logger.error(f"[Virtual] SysID [{sys_df.loc[i, 'id_x']}] it has no 'id_xxx' in composition_expression.") 
                     continue
 
                 # some virtual system has children systems, this is wrong config, print them out
@@ -449,7 +454,7 @@ class DataFlow(object):
                     # continue
                 
                 if not replace_ok:
-                    self.logger.debug(f"[Virtual] SysID [{sys_df.loc[i, 'id_x']}] [{sys_df.loc[i, 'name_x']}] replace expression failed.")          
+                    self.logger.error(f"[Virtual] SysID [{sys_df.loc[i, 'id_x']}] [{sys_df.loc[i, 'name_x']}] replace expression failed.")          
                     continue
 
                 ################################
@@ -495,6 +500,7 @@ class DataFlow(object):
                     # grpc request for updating energy_virtual_relationship                    
                     if not self.simulation:
                         response_data = run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, 
+                                                        system_id = sys_df.loc[i, 'id_x'],
                                                         grpcFunction=RequestCreateVirtualDatapoint, 
                                                         logger=self.logger)
                         # response = vdpGrpcPb2.PureCreateResponse()
@@ -636,6 +642,7 @@ class DataFlow(object):
                             
                             # 重现创建新的virtual datapoint instance
                             response_data = run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, 
+                                                        system_id = sys_df.loc[i, 'id_x'],
                                                         grpcFunction=RequestCreateVirtualDatapoint, 
                                                         logger=self.logger)
                                               
@@ -667,18 +674,22 @@ class DataFlow(object):
                             virtual_datapoint_id = str(vdp_df['id'].iloc[0])
                             virtualDatapointID = virtual_datapoint_id
                             node_dp_df = self.hr.nodeDataPointByDataID(data_id = virtual_datapoint_id)
-                            
-                            if node_dp_df.shape[0] == 0:
-                                sid = sys_df.loc[i, 'id_x']
+                            sid = sys_df.loc[i, 'id_x']
+
+                            if node_dp_df.shape[0] == 0:                                
                                 self.logger.error(f"failed update node for SysID:{sid}, datapoint_id:{energy_datapint_id} not found the node.datapoint instance by data_id!")    
                                 continue
                             else:
                                 update_response = run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, 
-                                                       grpcFunction=RequestUpdateVirtualDatapoint, 
-                                                       logger=self.logger )  
+                                                        system_id = sys_df.loc[i, 'id_x'],
+                                                        grpcFunction=RequestUpdateVirtualDatapoint, 
+                                                        logger=self.logger )  
                                 
+                                node_id = node_dp_df['id'].iloc[0]
+                                node_ref_id = node_dp_df['ref_id'].iloc[0]  
+
                                 sys_df.loc[i, "node_type"] = 'DATAPOINT'
-                                sys_df.loc[i, "node_id"] = node_dp_df['id'].iloc[0]
+                                sys_df.loc[i, "node_id"] = node_id
                                 sys_df.loc[i, "node_ref_id"] = node_dp_df['ref_id'].iloc[0]                    
                                 sys_df.loc[i, "data_type"] = 'VIRTUALDATAPOINT'   
 

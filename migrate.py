@@ -130,9 +130,9 @@ def main():
     
             # Configure logging specific to this iteration
             logger.handlers = []  # Clear any existing handlers
-            logger.setLevel(logging.DEBUG)
+            logger.setLevel(logging.ERROR)
             handler = logging.FileHandler(filename=f"{site_path}/{code}.log")
-            handler.setLevel(logging.DEBUG)
+            handler.setLevel(logging.ERROR)
             logger.addHandler(handler)
 
             Migrate(code, simulation = False, purgeRelations = False, logger=logger)
