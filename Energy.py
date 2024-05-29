@@ -94,6 +94,18 @@ class Energy:
 
         return dataDF[columns]
     
+    def getDataPointByID(self, datapoint_id):        
+        sql = f'''SELECT id, ref_id 
+            FROM energy_datapoint  where id = '{datapoint_id}'  '''         
+        dataDF = pd.read_sql_query(sql, self.engine)
+        dataDF['id'] = dataDF['id'].astype(str)
+
+        if dataDF.empty:
+            # DataFrame is empty (has no rows)
+            return pd.DataFrame()
+
+        return dataDF
+    
     def updateRefIDofDataPoint(self, ref_id = 0, data_point_id = None):        
         sql = f'''update energy_datapoint set ref_id = {int(ref_id)} where id = '{data_point_id}' '''         
         with self.engine.connect() as connection:
