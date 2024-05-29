@@ -87,24 +87,51 @@ class DataFlow(object):
 
         new_names = {'id_x': 'company_id', 'id_y': 'tenant_id', 'name_x': 'company', "code": 'company_code'}
         tenant_df = tenant_df.rename(columns=new_names)
-        # tenant_df.to_csv(f"{site_path}/tenant_df.csv")
+        tenant_df.to_csv(f"{site_path}/tenant_df.csv")
 
         # self.logger.info("---------------Tenant-----------------")
         # self.logger.info(tenant_df[:3])
 
         sys_df = self.ems.systems(code=self.code)
-        # sys_df.to_csv(f"{site_path}/sys_df.csv")
+        # print("----------------------------------------------------------------")
+        # 因为某些列包含'nan'/ NaN / 5123.0导致无法做merge，暂时可以用to_csv,然后read_csv可以避免这个问题
+        sys_df.to_csv(f"{site_path}/sys_df.csv", index=False)
+        sys_df = pd.read_csv(f"{site_path}/sys_df.csv", index_col=False)
+        # print(sys_df[:2])
 
-        dp = self.energy.dataPoint(columns = ["id", "ref_id", "name"])
-        # dp.to_csv(f"{site_path}/dp.csv")
+        meters = self.energy.meter(columns = ["meter_id", "meter_ref_id"])
+        meters.to_csv(f"{site_path}/meters.csv", index=False)
 
-        sys_dp_df = pd.merge(sys_df, dp, how="left", left_on="id", right_on="ref_id")
-        # sys_dp_df.to_csv(f"{site_path}/sys_dp_df.csv")
+        dp = self.energy.dataPoint(columns = ["dp_id", "ref_id", "source_key", "meter_id"])
+        dp.to_csv(f"{site_path}/dp.csv", index=False)
+
+        meter_dp_df = pd.merge(meters, dp, how="left", left_on="meter_id", right_on="meter_id")
+        meter_dp_df = meter_dp_df[['meter_ref_id', 'source_key', 'dp_id', 'ref_id']]
+        # Drop rows with any NaN values
+        meter_dp_df.dropna(inplace=True)
+        meter_dp_df = meter_dp_df[(meter_dp_df['source_key']!='nan') &  (~pd.isnull(meter_dp_df['source_key'])) & (~pd.isnull(meter_dp_df['dp_id']))]   
+        
+        # print("----------------------------------------------------------------")
+        # print(meter_dp_df.isnull().sum())
+        # print(meter_dp_df.shape)
+        # print("-----------")        
+        meter_dp_df.to_csv(f"{site_path}/meter_dp_df.csv", index=False)
+        meter_dp_df = pd.read_csv(f"{site_path}/meter_dp_df.csv", index_col=False)
+        # print(meter_dp_df[:2])
+
+        # sys_dp_df = pd.merge(sys_df, dp, how="left", left_on="id", right_on="ref_id")
+        sys_dp_df = pd.merge(left=sys_df, 
+                    right=meter_dp_df, 
+                    how='left',
+                    left_on=['meter_id', 'source_key'], 
+                    right_on=['meter_ref_id', 'source_key'])
+
+        sys_dp_df.to_csv(f"{site_path}/sys_meter_dp_df.csv", index=False)
         # self.logger.info("---------------System with datapoint-----------------")
         # self.logger.info(sys_dp_df[:1])
 
         result_df = pd.merge(sys_dp_df, tenant_df, how="left", left_on="company_id", right_on="company_id")
-        # result_df.to_csv(f"{site_path}/result_df.csv")
+        result_df.to_csv(f"{site_path}/result_df.csv", index=False)
         # self.logger.info("---------------System with datapoint, tenant-----------------")
         # self.logger.info(result_df[:8])
 

@@ -34,7 +34,7 @@ class EMS:
         #         ) cc
         #         on es.company_id = cc.id'''
         sql = f'''
-            select es.id, es.parent_system_id, es.name, es.source_key, es.meter_id, 
+            select es.id, es.parent_system_id, es.name as system_name, es.source_key as source_key, es.meter_id as meter_id, 
                 es.composition_expression, es.component_of_id, es.company_id, es.city_id, ec.name as city_name 
             from energy_system es 
             inner join
@@ -49,7 +49,22 @@ class EMS:
         '''
 
         # Read the data from the table into the DataFrame
-        dataDF = pd.read_sql_query(sql, self.engine)
+        # Specify data types for integer columns
+        dtypes = {
+            'parent_system_id': str,
+            'meter_id': str,
+            'company_id': str,
+            'city_id': str,
+        }
+
+        # Read the data into the DataFrame with specified data types
+        dataDF = pd.read_sql_query(sql, self.engine, dtype=dtypes)
+
+        # dataDF = pd.read_sql_query(sql, self.engine) 
+        # dataDF['meter_id'] = dataDF['meter_id'].astype(str)
+        # dataDF['source_key'] = dataDF['source_key'].astype(str) 
+        # dataDF['parent_system_id'] = dataDF['parent_system_id'].astype(str)
+        # dataDF['city_id'] = dataDF['city_id'].astype(str)
 
         return dataDF
     

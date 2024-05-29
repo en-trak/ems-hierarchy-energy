@@ -61,11 +61,12 @@ class Energy:
         self.engine = create_engine(connection_string)
 
 
-    def meter(self, columns = ["id", "ref_id", "name"]):        
-        sql = f''' SELECT id, ref_id, status, tenant_id, failed_counts, report_last_sent, last_online_at, description, has_kva, dataflow_mode, site_id, data_type, meter_type, serial, remark
+    def meter(self, columns = ["meter_id", "meter_ref_id", "name"]):        
+        sql = f''' SELECT id as meter_id, ref_id as meter_ref_id, tenant_id, dataflow_mode, site_id, data_type, meter_type, serial
             FROM energy_meter '''         
         dataDF = pd.read_sql_query(sql, self.engine)
-        dataDF['id'] = dataDF['id'].astype(str)
+        dataDF['meter_id'] = dataDF['meter_id'].astype(str)
+        dataDF['meter_ref_id'] = dataDF['meter_ref_id'].astype(str)
 
         return dataDF[columns]    
     
@@ -86,11 +87,24 @@ class Energy:
         return dataDF[columns] 
     
 
-    def dataPoint(self, columns = ["id", "ref_id", "name"]):        
-        sql = f''' SELECT id, ref_id, meter_id, "name", status, device_id, object_id, object_type
-            FROM energy_datapoint'''         
-        dataDF = pd.read_sql_query(sql, self.engine)
-        dataDF['id'] = dataDF['id'].astype(str)
+    def dataPoint(self, columns = ["dp_id", "ref_id", "source_key", "meter_id"]):        
+        sql = f''' SELECT id as dp_id, ref_id, meter_id, "name" as source_key, status, device_id, object_id, object_type
+            FROM energy_datapoint'''     
+        # Specify data types for integer columns
+        dtypes = {
+            'dp_id': str,
+            'ref_id': str,
+            'meter_id': str,
+        }
+
+        # Read the data into the DataFrame with specified data types
+        dataDF = pd.read_sql_query(sql, self.engine, dtype=dtypes)
+
+        # dataDF = pd.read_sql_query(sql, self.engine)
+        # dataDF['dp_id'] = dataDF['dp_id'].astype(str)
+        # dataDF['meter_id'] = dataDF['meter_id'].astype(str)
+        # dataDF['source_key'] = dataDF['source_key'].astype(str)
+        # dataDF['ref_id'] = dataDF['ref_id'].astype(str)
 
         return dataDF[columns]
     

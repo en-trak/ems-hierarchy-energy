@@ -43,79 +43,79 @@ def Migrate(code, simulation = True, purgeRelations = False, logger=None):
     hr = Hierarchy(host=host, port=port, user=user, password=password, database=database,logger=logger)
     
     # 
-    if not simulation:
-        hr.purgeTree(tenant.id.values[0],
-                        tenant.name.values[0],
-                        tenant.company_code.values[0])  
+    # if not simulation:
+    #     hr.purgeTree(tenant.id.values[0],
+    #                     tenant.name.values[0],
+    #                     tenant.company_code.values[0])  
         
-    if purgeRelations:
-        logger.info("====================== TenantTree purge ==========================")
-        hr.purgeTree(tenant.id.values[0],
-                        tenant.name.values[0],
-                        tenant.company_code.values[0])  
+    # if purgeRelations:
+    #     logger.info("====================== TenantTree purge ==========================")
+    #     hr.purgeTree(tenant.id.values[0],
+    #                     tenant.name.values[0],
+    #                     tenant.company_code.values[0])  
 
     
     # generate tenant tree in dataflow
     dataFlow = DataFlow(code, components_binding, simulation=simulation, logger=logger)
     df = dataFlow.PreparingData()
     # df = dataFlow.LoadData()
-    logger.info("====================== create_nodes_and_datapoints ==========================")
-    dataFlow.create_nodes_and_datapoints(df, tenant.id.values[0])
-    # export the df to csv file
-    # the node_type is 'unknown' means they will not be in hierarchy tree
+    # logger.info("====================== create_nodes_and_datapoints ==========================")
+    # dataFlow.create_nodes_and_datapoints(df, tenant.id.values[0])
+    # # export the df to csv file
+    # # the node_type is 'unknown' means they will not be in hierarchy tree
 
-    site_path = f"./output/{code}"    
-    if simulation:
-        srd = dataFlow.hr.simulation_relations_df
-        if srd.shape[0] == 0:
-            logger.error("Simulation is empty!!! It will no sim_new_{code}.xml generate!!!")            
-        else:
-            site_node_id = srd[srd['parent_type']=='SITE']['parent_id'].iloc[0]
+    # site_path = f"./output/{code}"    
+    # if simulation:
+    #     srd = dataFlow.hr.simulation_relations_df
+    #     if srd.shape[0] == 0:
+    #         logger.error("Simulation is empty!!! It will no sim_new_{code}.xml generate!!!")            
+    #     else:
+    #         site_node_id = srd[srd['parent_type']=='SITE']['parent_id'].iloc[0]
             
-            logger.debug("====================== Simulate TenantTree XML ==========================")    
-            tenantTree = dataFlow.hr.TenantSimulateTree(
-                                    # tenant.id.values[0],
-                                    site_node_id,
-                                    tenant.name.values[0],
-                                    tenant.company_code.values[0])
-            # logger.debug(tenantTree)
-            dataFlow.hr.SaveToXml(tenantTree, f"{site_path}/sim_new_{code}.xml") 
-    else:        
-        srd = dataFlow.hr.simulation_relations_df
-        srd.to_csv(f"{site_path}/relations_df_{code}.csv")
-        if srd.shape[0] == 0:
-            logger.error(f"Simulation is empty!!! It will no new_{code}.xml generate!!!")            
-        else:
-            site_node_id = srd[srd['parent_type']=='SITE']['parent_id'].iloc[0]
+    #         logger.debug("====================== Simulate TenantTree XML ==========================")    
+    #         tenantTree = dataFlow.hr.TenantSimulateTree(
+    #                                 # tenant.id.values[0],
+    #                                 site_node_id,
+    #                                 tenant.name.values[0],
+    #                                 tenant.company_code.values[0])
+    #         # logger.debug(tenantTree)
+    #         dataFlow.hr.SaveToXml(tenantTree, f"{site_path}/sim_new_{code}.xml") 
+    # else:        
+    #     srd = dataFlow.hr.simulation_relations_df
+    #     srd.to_csv(f"{site_path}/relations_df_{code}.csv")
+    #     if srd.shape[0] == 0:
+    #         logger.error(f"Simulation is empty!!! It will no new_{code}.xml generate!!!")            
+    #     else:
+    #         site_node_id = srd[srd['parent_type']=='SITE']['parent_id'].iloc[0]
             
-            logger.debug("====================== TenantTree XML ==========================")    
-            tenantTree = dataFlow.hr.TenantTree(tenant.id.values[0],
-                                    tenant.name.values[0],
-                                    tenant.company_code.values[0],                                    
-                                    purge=False)
-            # logger.debug(tenantTree)
-            dataFlow.hr.SaveToXml(tenantTree, f"{site_path}/new_{code}.xml")   
+    #         logger.debug("====================== TenantTree XML ==========================")    
+    #         tenantTree = dataFlow.hr.TenantTree(tenant.id.values[0],
+    #                                 tenant.name.values[0],
+    #                                 tenant.company_code.values[0],                                    
+    #                                 purge=False)
+    #         # logger.debug(tenantTree)
+    #         dataFlow.hr.SaveToXml(tenantTree, f"{site_path}/new_{code}.xml")   
 
 
-    host=readOption("databases.ems.host")
-    port=readOption("databases.ems.port")
-    database=readOption("databases.ems.database")
-    user=readOption("databases.ems.username")
-    password=readOption("databases.ems.password")    
+    # host=readOption("databases.ems.host")
+    # port=readOption("databases.ems.port")
+    # database=readOption("databases.ems.database")
+    # user=readOption("databases.ems.username")
+    # password=readOption("databases.ems.password")    
 
-    logger.debug("======================= EMS system tree XML =========================")
-    ems = EMS(host=host, port=port, user=user, password=password, database=database)
-    company = ems.company(code)
+    # logger.debug("======================= EMS system tree XML =========================")
+    # ems = EMS(host=host, port=port, user=user, password=password, database=database)
+    # company = ems.company(code)
 
-    # logger.debug(f"{company.name.values[0]} | {company.code.values[0]} | {company.id.values[0]}")
-    companyTree = ems.SystemTree(company.id.values[0],
-                                    company.name.values[0],
-                                    company.code.values[0])
+    # # logger.debug(f"{company.name.values[0]} | {company.code.values[0]} | {company.id.values[0]}")
+    # companyTree = ems.SystemTree(company.id.values[0],
+    #                                 company.name.values[0],
+    #                                 company.code.values[0])
     
-    ems.SaveToXml(companyTree, f"{site_path}/{code}_system.xml")
-        # logger.debug(companyTree)
+    # ems.SaveToXml(companyTree, f"{site_path}/{code}_system.xml")
+    #     # logger.debug(companyTree)
 
-    logger.info(f"====================== Finished {code} ==========================")
+    # logger.info(f"====================== Finished {code} ==========================")
 
 def main():
     # Define the logger outside the loop
