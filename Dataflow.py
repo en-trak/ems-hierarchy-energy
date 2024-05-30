@@ -714,7 +714,7 @@ class DataFlow(object):
             self.hr.simulation_sys_df = sys_df
 
         
-        sys_df.to_csv(f"{self.site_path}/sys_df_after.csv")
+        sys_df.to_csv(f"{self.site_path}/sys_df_after.csv", index=False)
 
 
 
