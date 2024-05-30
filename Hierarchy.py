@@ -401,9 +401,9 @@ class Hierarchy:
     def create_relations(self, df, components_binding = False):
         '''
         df:
-        ['id_x', 'parent_system_id', 'name_x', 'source_key', 'meter_id',
-        'composition_expression', 'component_of_id', 'company_id', 'id_y',
-        'ref_id', 'name_y', 'tenant_id', 'company', 'company_code', 'index',
+        ['id', 'parent_system_id', 'system_name', 'source_key', 'meter_id',
+        'composition_expression', 'component_of_id', 'company_id', 'dp_id',
+        'ref_id', 'source_key', 'tenant_id', 'company', 'company_code', 'index',
         'use_datapoint_id', 'use_system_id', 'node_id', 'node_type',
         'node_ref_id', 'component', 'expression_replaced']
 
@@ -482,7 +482,7 @@ class Hierarchy:
             
             if not is_none_or_nan(row['parent_system_id']):
                 parent_id = row['parent_system_id']
-                parent = df[df['id_x']==parent_id]
+                parent = df[df['id']==parent_id]
                 if parent.shape[0]==0:
                     continue
                 parent_id = parent['node_id'].values[0]
