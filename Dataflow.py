@@ -193,7 +193,8 @@ class DataFlow(object):
             df.loc[i, 'composition_expression'] = old_composition_expression 
         else:
             self.logger.info("To replace expression with new: {}".format(new_composition_expression))    
-            df.loc[i, 'composition_expression'] = new_composition_expression        
+            df.loc[i, 'composition_expression'] = new_composition_expression
+            df.loc[i, 'new_expression'] = new_composition_expression        
 
         # self.logger.info("Replace expression with B: {}".format(composition_expression))
 
@@ -216,6 +217,8 @@ class DataFlow(object):
         sys_df["node_type"] = 'unknown'       
         sys_df["data_type"] = 'unknown'     
         sys_df["node_ref_id"] = 'unknown'
+        sys_df["old_expression"] = sys_df["composition_expression"]
+        sys_df["new_expression"] = ''
         sys_df["component"] = 0
         sys_df["expression_replaced"] = 0
         sys_df["tenant_id"] = tenant_id
@@ -397,8 +400,9 @@ class DataFlow(object):
                 and not is_none_or_nan_zero(str(sys_df.loc[i, 'composition_expression'])):
                 
                 self.logger.debug(f"[Virtual] SysID [{sys_df.loc[i, 'id']}] [{sys_df.loc[i, 'system_name']}]")          
-
-                if '{' not in str(sys_df.loc[i, 'composition_expression']):
+                
+                composition_expression = str(sys_df.loc[i, 'composition_expression'])
+                if '{' not in composition_expression and composition_expression!= '0':
                     self.logger.error(f"[Virtual] SysID [{sys_df.loc[i, 'id']}] it has no 'id_xxx' in composition_expression.") 
                     continue
 
@@ -471,6 +475,8 @@ class DataFlow(object):
                     if not self.simulation:
                         response_data = run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, 
                                                         system_id = sys_df.loc[i, 'id'],
+                                                        old_expression = sys_df.loc[i, 'old_expression'],
+                                                        new_expression = sys_df.loc[i, 'new_expression'],
                                                         grpcFunction=RequestCreateVirtualDatapoint, 
                                                         logger=self.logger)
                         # response = vdpGrpcPb2.PureCreateResponse()
@@ -589,7 +595,7 @@ class DataFlow(object):
                         return response
                     
                     # grpc request for updating energy_virtual_relationship
-
+                    sid = sys_df.loc[i, 'id']
                     if not self.simulation:
                         create_new = False
                         vdp_df = self.energy.getVirtualDataPoint(energy_datapint_id, columns=["id", "status", "is_solar", "datapoint_id"])
@@ -615,6 +621,8 @@ class DataFlow(object):
                             # 重现创建新的virtual datapoint instance
                             response_data = run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, 
                                                         system_id = sys_df.loc[i, 'id'],
+                                                        old_expression = sys_df.loc[i, 'old_expression'],
+                                                        new_expression = sys_df.loc[i, 'new_expression'],
                                                         grpcFunction=RequestCreateVirtualDatapoint, 
                                                         logger=self.logger)
                                               
@@ -655,6 +663,8 @@ class DataFlow(object):
                             else:
                                 run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, 
                                                         system_id = sys_df.loc[i, 'id'],
+                                                        old_expression = sys_df.loc[i, 'old_expression'],
+                                                        new_expression = sys_df.loc[i, 'new_expression'],
                                                         grpcFunction=RequestUpdateVirtualDatapoint, 
                                                         logger=self.logger )  
                                 
