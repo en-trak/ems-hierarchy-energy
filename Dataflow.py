@@ -183,12 +183,21 @@ class DataFlow(object):
                 continue
 
             if replace_ok:
-                new_composition_expression = new_composition_expression.replace(match.group(0), "{id_"+str(node_ref_id)+"}")
+                str_node_ref_id = str(node_ref_id)
+                if str_node_ref_id == 'unknown':
+                    # Handle the case where component is sensor 
+                    str_sensor_id = "sensor_id:"+str_node_ref_id
+                    id_list.append(str_sensor_id)
+                    # self.logger.error(f"not found id_{str(id_xxx)}")   
+                    replace_ok = False
+                    continue
+
+                new_composition_expression = new_composition_expression.replace(match.group(0), "{id_"+str_node_ref_id+"}")
         
 
         if not replace_ok:            
             no_find_node_ref_id = list(set(id_list)) 
-            self.logger.error(f"[Virtual] SysID [{system_id}]'s expression, their component id_xxx has no node_ref_id, components id list: {no_find_node_ref_id}")
+            self.logger.error(f"[Virtual] SysID [{system_id}]'s expression, their component id_xxx has no node_ref_id or including sensors, components id list: {no_find_node_ref_id}")
             self.logger.info("replace expression failed")       
             df.loc[i, 'composition_expression'] = old_composition_expression 
         else:
@@ -347,6 +356,11 @@ class DataFlow(object):
                         _source_key = sys_df.iloc[i]['source_key']
                         _meter_id = sys_df.iloc[i]['meter_id']
 
+                        component_or_system = "system_" + str(sys_df.loc[i, 'id'])
+                        if not is_none_or_nan(sys_df.loc[i, 'component_of_id']):
+                            component_or_system = "component_system_" + str(sys_df.loc[i, 'id'])
+              
+
                         if self.simulation:
                             node_id, node_ref_id = self.hr.create_simulate_node(node_type='DATAPOINT', 
                                                                 data_type="ENERGY", 
@@ -356,7 +370,7 @@ class DataFlow(object):
                                                                 # 这样hierarchy.node_data_points.id 跟 energy.enerngy_datapoint.id就是1对1关系
                                                                 # 实际情况是能找到多个systems都有enenrgy_datapoints记录，所以如果有此记录，则用它，没有的记录的，才取
                                                                 # 第一个记录。另外多个这样的systems在node_data_points里边只有一个记录，既唯一对应node_data_points.ref_id
-                                                                desc = f"cid {sys_df.loc[i, 'company_id']} mid {_meter_id} sk: {_source_key}",
+                                                                desc = f"cid {sys_df.loc[i, 'company_id']} {component_or_system} mid {int(_meter_id)} sk: {_source_key}",
                                                                 data_id = data_id,
                                                                 ref_id=sys_df.loc[i, 'id'] )  
                         else:
@@ -368,7 +382,7 @@ class DataFlow(object):
                                                                 # 这样hierarchy.node_data_points.id 跟 energy.enerngy_datapoint.id就是1对1关系
                                                                 # 实际情况是能找到多个systems都有enenrgy_datapoints记录，所以如果有此记录，则用它，没有的记录的，才取
                                                                 # 第一个记录。另外多个这样的systems在node_data_points里边只有一个记录，既唯一对应node_data_points.ref_id
-                                                                desc = f"cid {sys_df.loc[i, 'company_id']} mid {_meter_id} sk: {_source_key}",
+                                                                desc = f"cid {sys_df.loc[i, 'company_id']} {component_or_system} mid {int(_meter_id)} sk: {_source_key}",
                                                                 data_id = data_id)       
                     except Exception as e:
                         self.logger.error(f"create_node DATAPOINT err: {str(e)}")         
@@ -381,6 +395,7 @@ class DataFlow(object):
                     sys_df.loc[i, "data_type"] = 'ENERGY'
                     sys_df.loc[i, "use_system_id"] = _ref_id
                     sys_df.loc[i, "use_datapoint_id"] = _energy_datapoint_id  
+                    # self.logger.debug(f"[ENERGY DATAPOINT] SysID [{sys_df.loc[i, 'id']}] NodeID: {node_id} Node_ref_id: {node_ref_id}")              
                     
 
                 
@@ -500,6 +515,11 @@ class DataFlow(object):
                         vdp_df = self.energy.getVirtualDataPointByID(virtualDatapointID)
                         datapoint_id = str(vdp_df['datapoint_id'].iloc[0])  
                         self.energy.updateRefIDofDataPoint(ref_id = int(sys_df.loc[i, "id"]), data_point_id = datapoint_id)
+
+                        # 释放 dataframe 占用的内存
+                        del vdp_df
+                        # 强制垃圾回收器释放内存
+                        gc.collect()
                    
                     
                     # energy_datapint_id set to virtualDatapointID
@@ -600,6 +620,7 @@ class DataFlow(object):
                         create_new = False
                         vdp_df = self.energy.getVirtualDataPoint(energy_datapint_id, columns=["id", "status", "is_solar", "datapoint_id"])
                         
+                        virtual_datapoint_id = None
                         if vdp_df.shape[0] != 0:
                             virtual_datapoint_id = str(vdp_df['id'].iloc[0])
                             node_dp_df = self.hr.nodeDataPointByDataID(data_id = virtual_datapoint_id)
@@ -609,7 +630,7 @@ class DataFlow(object):
                         else:
                             create_new = True
                             self.logger.debug(f"Virtual sysID:{sid} has no energy.virtual_datapoint instance. so need re-create it") 
-                                                    
+
                         # 释放 dataframe 占用的内存
                         del vdp_df
                         # 强制垃圾回收器释放内存
@@ -645,40 +666,50 @@ class DataFlow(object):
                             datapoint_id = str(vdp_df['datapoint_id'].iloc[0])  
                             self.energy.updateRefIDofDataPoint(ref_id = int(sys_df.loc[i, "id"]), data_point_id = datapoint_id)
 
+                            # 释放 dataframe 占用的内存
+                            del vdp_df
+                            # 强制垃圾回收器释放内存
+                            gc.collect()
+
                             sys_df.loc[i, "use_system_id"] = sys_df.loc[i, "id"]
                             sys_df.loc[i, "use_datapoint_id"] = virtualDatapointID
                             sys_df.loc[i, "ref_id"] = sys_df.loc[i, "id"]
                             sys_df.loc[i, "dp_id"] = virtualDatapointID  
                             sys_df.loc[i, "data_type"] = 'VIRTUALDATAPOINT'  
 
-                        else:
-                            virtual_datapoint_id = str(vdp_df['id'].iloc[0])
+                        else:                            
                             virtualDatapointID = virtual_datapoint_id
                             node_dp_df = self.hr.nodeDataPointByDataID(data_id = virtual_datapoint_id)
                             sid = sys_df.loc[i, 'id']
 
-                            if node_dp_df.shape[0] == 0:                                
-                                self.logger.error(f"failed update node for Virtual SysID:{sid}, data_id:{virtual_datapoint_id}, not found the node.datapoint instance by data_id!")    
-                                continue
-                            else:
-                                run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, 
-                                                        system_id = sys_df.loc[i, 'id'],
-                                                        old_expression = sys_df.loc[i, 'old_expression'],
-                                                        new_expression = sys_df.loc[i, 'new_expression'],
-                                                        grpcFunction=RequestUpdateVirtualDatapoint, 
-                                                        logger=self.logger )  
-                                
-                                node_id = node_dp_df['id'].iloc[0]
-                                node_ref_id = node_dp_df['ref_id'].iloc[0]  
-
-                                sys_df.loc[i, "node_type"] = 'DATAPOINT'
-                                sys_df.loc[i, "node_id"] = node_id
-                                sys_df.loc[i, "node_ref_id"] = node_ref_id                   
-                                sys_df.loc[i, "data_type"] = 'VIRTUALDATAPOINT'   
-
-                                self.logger.info(f"updated node for SysID:{sid} node_id:{node_id} node_ref_id:{node_ref_id}")
+                            run_grpc(stub=STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC, 
+                                                    system_id = sys_df.loc[i, 'id'],
+                                                    old_expression = sys_df.loc[i, 'old_expression'],
+                                                    new_expression = sys_df.loc[i, 'new_expression'],
+                                                    grpcFunction=RequestUpdateVirtualDatapoint, 
+                                                    logger=self.logger )  
                             
-                                continue
+                            node_id = node_dp_df['id'].iloc[0]
+                            node_ref_id = node_dp_df['ref_id'].iloc[0]  
+
+                            sys_df.loc[i, "node_type"] = 'DATAPOINT'
+                            sys_df.loc[i, "node_id"] = node_id
+                            sys_df.loc[i, "node_ref_id"] = node_ref_id                   
+                            sys_df.loc[i, "data_type"] = 'VIRTUALDATAPOINT'  
+
+                            # use virtual datapoint.id -> datapoint.id -> set the ref_id to system.id
+                            vdp_df = self.energy.getVirtualDataPointByID(virtualDatapointID)
+                            datapoint_id = str(vdp_df['datapoint_id'].iloc[0])  
+                            self.energy.updateRefIDofDataPoint(ref_id = int(sys_df.loc[i, "id"]), data_point_id = datapoint_id)
+
+                            # 释放 dataframe 占用的内存
+                            del vdp_df
+                            # 强制垃圾回收器释放内存
+                            gc.collect() 
+
+                            self.logger.info(f"updated node for SysID:{sid} node_id:{node_id} node_ref_id:{node_ref_id}")
+                        
+                            continue
                         
 
                     

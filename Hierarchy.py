@@ -557,6 +557,7 @@ class Hierarchy:
         (5 rows)
         '''
         new_id = uuid.uuid4()        
+        str_new_uuid = str(new_id)
 
         name = name.replace("'", "''")
         desc = desc.replace("'", "''")      
@@ -593,23 +594,29 @@ class Hierarchy:
                 """,
             "DATAPOINT": f'''
                     SELECT id, ref_id FROM node_data_points
-                    WHERE "desc" = '{desc}'
+                    WHERE data_id = '{data_id}'
                 '''            
         }
 
         insert_sql = mapSqlInsert[node_type]
         # self.logger.debug(f"=====================[{node_type}]===========================")
         # 执行SQL语句并获取新创建数据点的ID
-        node_datapoint_id, ref_id = None, None
+        node_datapoint_id, node_ref_id = None, None
         if node_type == "DATAPOINT":
-            # self.logger.debug(f"---- create node: {node_type}, sql={sql} ----")            
+            # self.logger.debug(f"---- create node: {node_type}, sql={sql} ----")                        
             dataDF = pd.read_sql_query(mapSqlCheck[node_type], self.engine)
             if dataDF.shape[0] > 0 and not pd.isnull(dataDF['id'].iloc[0]):
                 # return dataDF['id'].iloc[0], dataDF['ref_id'].iloc[0]    
                 # need remove old data as the data_id has changed 
                 try:
                     node_datapoint_id = dataDF['id'].iloc[0]
-                    self.purgeNodeDataPoint(id = node_datapoint_id)
+                    node_ref_id = dataDF['ref_id'].iloc[0]
+
+                    if not pd.isnull(node_ref_id) and len(str(node_ref_id)) > 0:
+                        return node_datapoint_id, node_ref_id
+                    else:
+                        self.purgeNodeDataPoint(id = node_datapoint_id)
+                        
                 except Exception:
                     self.logger.error(f"purge old data failed: data_id:{data_id}") 
                     return False
@@ -619,30 +626,32 @@ class Hierarchy:
             while not quit:
                 with self.engine.connect() as connection:                    
                     try:                        
-                        node_datapoint_id, ref_id = connection.execute(insert_sql).fetchone()[:2]
+                        node_datapoint_id, node_ref_id = connection.execute(insert_sql).fetchone()[:2]                        
+                        # self.logger.debug(f"data_id: {data_id} id:{node_datapoint_id} new_id:{str_new_uuid}")
                         quit = True                        
                         if toDelete:
-                            self.logger.debug(f"component systme, node type: {node_type} desc: {desc} inserted after remove the old data in node_data_points")
-                    except Exception:
+                            # self.logger.debug(f"component or system, node type: {node_type} desc: {desc} inserted after remove the old data in node_data_points")
+                            return new_id, node_ref_id
+                    except Exception as e:
                         # 如果插入失败，说明已经有enerngy_datapoin存在了，
                         # 1: 直接提取存对应的node_data_points.id 和 node_data_points.ref_id
                         # 2： 因为node_data_points包含component这种类型的system，而它在关系表中不会出现
                         # 所以导致purge树的时候，不会删除它，只有在这里删除它，并重现创建它
                                                 
-                        toDelete = True                      
+                        toDelete = True    
+                        self.logger.error(f"create node with data_id: {data_id} id:{node_datapoint_id} new_id:{str_new_uuid} error:{str(e)}")                  
 
                 if toDelete:
-                    # 必须node_data_points.id 跟 enerngy_datapoints.id or energy_virtual_datapoint.id 是1 对 1 关系
+                    # 必须node_data_points.id 跟 enerngy_datapoints.id or energy_virtual_datapoint.id 是 n 对 1 关系
                     # 否则这个逻辑会有问题
                     try:
                         node_datapoint_id = self.nodeDataPointIDByDataID(data_id=data_id)
-                        self.purgeNodeDataPoint(id = node_datapoint_id)
-                    except Exception:
-                        self.logger.error(f"data_id:{data_id}") 
+                        self.purgeNodeDataPoint(id = node_datapoint_id)                        
+                    except Exception:                        
+                        self.logger.error(f"delete data_id: {data_id} id:{node_datapoint_id} new_id:{str_new_uuid} error:{str(e)}")     
                         quit = True
-                    
 
-            return node_datapoint_id, ref_id
+            return new_id, node_ref_id
         else:   
             # print(f"---- create node: {node_type}, sql={sql} ----")            
             dataDF = pd.read_sql_query(mapSqlCheck[node_type], self.engine)
