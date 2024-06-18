@@ -24,17 +24,23 @@ class EMS:
         return dataDF
     
     def systems(self, code="cdnis"):        
-        # sql = f'''select es.id, es.parent_system_id, es.name, es.source_key, es.meter_id, 
-        #             es.composition_expression, es.component_of_id, es.company_id, es.city_id 
-        #         from energy_system es 
-        #         inner join
-        #         (select id 
-        #         from companies_company
-        #         where code = '{code}'
-        #         ) cc
-        #         on es.company_id = cc.id'''
-        sql = f'''
-            select es.id, es.parent_system_id, es.name as system_name, es.source_key as source_key, es.meter_id as meter_id, 
+        # sql = f'''
+        #     select es.id, es.parent_system_id, es.name as system_name, es.source_key as source_key, es.meter_id as meter_id, 
+        #         es.composition_expression, es.component_of_id, es.company_id, es.city_id, ec.name as city_name 
+        #     from energy_system es 
+        #     inner join
+        #     (select id 
+        #     from companies_company
+        #     where code = '{code}'
+        #     ) cc
+        #     on es.company_id = cc.id
+        #     left join 
+        #     (select id, name from energy_city) ec 
+        #     on es.city_id = ec.id
+        # '''
+
+        sql = f'''select es.id, es.parent_system_id, es.name as system_name, es.source_key as source_key, es.meter_id as meter_id, 
+                es.sensor_id, s_iaq.sensor_ptr_id, s_iaq.serial_device,
                 es.composition_expression, es.component_of_id, es.company_id, es.city_id, ec.name as city_name 
             from energy_system es 
             inner join
@@ -46,7 +52,10 @@ class EMS:
             left join 
             (select id, name from energy_city) ec 
             on es.city_id = ec.id
-        '''
+            left join 
+            (SELECT sensor_ptr_id, serial_device
+            FROM sensor_iaqsensor) s_iaq
+            on es.sensor_id = s_iaq.sensor_ptr_id'''
 
         # Read the data from the table into the DataFrame
         # Specify data types for integer columns

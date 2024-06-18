@@ -416,15 +416,15 @@ class Hierarchy:
             (3 rows)
 
         hierarchy=> select distinct data_type from node_data_points;
-            data_type       
-            -----------------------
-            VIRTUALDATAPOINT
-            WATERMETER
-            ENERGY
-            WATERVIRTUALDATAPOINT
-            UNKNOW
-            (5 rows)
-
+          data_type       
+        -----------------------
+        VIRTUALDATAPOINT
+        WATERMETER
+        ENERGY
+        TEMPERATURE
+        WATERVIRTUALDATAPOINT
+        UNKNOW
+        (6 rows)
        '''
         
         # Note: only precess data_type = ENERGY
@@ -547,14 +547,16 @@ class Hierarchy:
     def create_node(self, name, node_type, city_id = None, data_id=None, desc = "", pov_unit="KWH", data_type="ENERGY"):  
         '''
         hierarchy=> select distinct data_type from node_data_points;
-            data_type       
-        -----------------------
-        VIRTUALDATAPOINT
-        WATERMETER
-        ENERGY
-        WATERVIRTUALDATAPOINT
-        UNKNOW
-        (5 rows)
+
+                data_type       
+            -----------------------
+            VIRTUALDATAPOINT
+            WATERMETER
+            ENERGY
+            TEMPERATURE
+            WATERVIRTUALDATAPOINT
+            UNKNOW
+            (6 rows)
         '''
         new_id = uuid.uuid4()        
         str_new_uuid = str(new_id)

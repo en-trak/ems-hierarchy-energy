@@ -6,6 +6,7 @@ from Energy import Energy
 from Hierarchy import Hierarchy
 from Organization import Organization
 from City import City
+from Node import Node
 import xml.etree.ElementTree as ET
 import re
 from common import zeroUUID, is_none_or_nan, is_none_or_nan_zero, readOption, run_grpc, small_endian_uuid, STUB_ENERGY_VIRTUAL_DATAPOINT_GRPC
@@ -65,18 +66,20 @@ class DataFlow(object):
         user=readOption("databases.city.username")
         password=readOption("databases.city.password")
         self.city = City(host=host, port=port, user=user, password=password, database=database)
+
+        host=readOption("databases.node.host")
+        port=readOption("databases.node.port")
+        database=readOption("databases.node.database")
+        user=readOption("databases.node.username")
+        password=readOption("databases.node.password")
+        self.node = Node(host=host, port=port, user=user, password=password, database=database)
         
 
         self.code = code
         self.components_binding = components_binding
     
     
-    def Building(self):
-        df = self.PreparingData()
-        # self.create_nodes_and_datapoints(df)
-    
-    
-    def PreparingData(self):
+    def PreparingData(self):        
         company_df = self.ems.company(code=self.code)
         tenant_df = self.org.Tenant(code=self.code)
         joined_tenant = pd.merge(company_df, tenant_df, how="left", left_on="code", right_on="company_code")        
@@ -131,7 +134,16 @@ class DataFlow(object):
         # self.logger.info("---------------System with datapoint-----------------")
         # self.logger.info(sys_dp_df[:1])
 
-        result_df = pd.merge(sys_meter_dp_df, tenant_df, how="left", left_on="company_id", right_on="company_id")
+        node_df = self.node.devices()
+        node_df.to_csv(f"{self.site_path}/node_df.csv", index=False)
+        node_df = pd.read_csv(f"{self.site_path}/node_df.csv", index_col=False)
+        sys_meter_dp_node_df = pd.merge(left=sys_meter_dp_df, 
+                    right=node_df, 
+                    how='left',
+                    left_on=['serial_device'], 
+                    right_on=['node_device_serial'])
+
+        result_df = pd.merge(sys_meter_dp_node_df, tenant_df, how="left", left_on="company_id", right_on="company_id")
         result_df.to_csv(f"{self.site_path}/result_df.csv", index=False)
         # self.logger.info("---------------System with datapoint, tenant-----------------")
         # self.logger.info(result_df[:8])
@@ -142,6 +154,7 @@ class DataFlow(object):
         del meters
         del meter_dp_df
         del sys_meter_dp_df
+        del sys_meter_dp_node_df
 
         return result_df
     
@@ -186,7 +199,7 @@ class DataFlow(object):
                 str_node_ref_id = str(node_ref_id)
                 if str_node_ref_id == 'unknown':
                     # Handle the case where component is sensor 
-                    str_sensor_id = "sensor_id:"+str_node_ref_id
+                    str_sensor_id = "sensor_id:"+str(id_xxx)
                     id_list.append(str_sensor_id)
                     # self.logger.error(f"not found id_{str(id_xxx)}")   
                     replace_ok = False
@@ -231,6 +244,47 @@ class DataFlow(object):
         sys_df["component"] = 0
         sys_df["expression_replaced"] = 0
         sys_df["tenant_id"] = tenant_id
+
+        self.logger.debug("======================= node devices =========================")        
+        for i in range(len(sys_df)):
+            if not is_none_or_nan(sys_df.loc[i, 'sensor_id']):
+                if is_none_or_nan_zero(sys_df.loc[i, 'sensor_ptr_id']):
+                    self.logger.debug(f"[ENERGY DATAPOINT] SysID [{sys_df.loc[i, 'id']}] has sensor_id but no sensor_ptr_id and serial_device in sensor_iaqsensor table!!!") 
+                    continue 
+                if is_none_or_nan_zero(sys_df.loc[i, 'node_device_serial']):
+                    self.logger.error(f"[ENERGY DATAPOINT] SysID [{sys_df.loc[i, 'id']}] which no instance of node.devices!!!") 
+                    continue 
+
+                node_id, node_ref_id = None, None 
+                # create new hierarchy node datapoint with data_type = 'TEMPERATURE', data_id = node.device.id
+                # update dp_id for virtual system including sensor_ids?
+                device_data_id = sys_df.loc[i, 'node_device_id'] 
+                node_device_serial = sys_df.loc[i, 'node_device_serial'] 
+                try:
+                    if self.simulation:
+                        node_id, node_ref_id = self.hr.create_simulate_node(node_type='DATAPOINT', 
+                                                            data_type="TEMPERATURE", 
+                                                            name=node_device_serial,                                                       
+                                                            data_id = device_data_id,
+                                                            desc = f"cid {sys_df.loc[i, 'company_id']} node.device serial {node_device_serial} device_id: {device_data_id}",                                                        
+                                                            ref_id=sys_df.loc[i, 'id'] 
+                                                        )  
+                    else:
+                        node_id, node_ref_id = self.hr.create_node(node_type='DATAPOINT', 
+                                                            data_type="TEMPERATURE", 
+                                                            name=node_device_serial,
+                                                            data_id = device_data_id,
+                                                            desc = f"cid {sys_df.loc[i, 'company_id']} node.device serial {node_device_serial} device_id: {device_data_id}"
+                                                        )    
+                except Exception as e:
+                        self.logger.error(f"create_node DATAPOINT err: {str(e)}")         
+                        node_id, node_ref_id = self.hr.query_datapoint_node(data_id = device_data_id)  
+
+                sys_df.loc[i, "node_type"] = 'DATAPOINT'       
+                sys_df.loc[i, "node_id"] = node_id       
+                sys_df.loc[i, "node_ref_id"] = node_ref_id  
+                sys_df.loc[i, "data_type"] = 'TEMPERATURE'
+                
 
         self.logger.debug("======================= site node =========================")
         # root system defined as hierachy.node_site

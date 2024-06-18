@@ -34,6 +34,13 @@ databases:
     database: city
     username: city
     password: sT7J9mdgbkNMbw5
+  node:
+    driver: org.postgresql.Driver
+    host: db-sbos-dev-instance-1.ctzvobutq8dd.ap-east-1.rds.amazonaws.com
+    port: 5432
+    database: node
+    username: node
+    password: PhEWzK62XGYmax
 
 code: "demohk"    
 components_binding: True

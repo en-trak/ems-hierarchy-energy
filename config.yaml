@@ -34,6 +34,13 @@ databases:
     database: city
     username: city
     password: rXGajaRh4haudHiwBVFR
+  node:
+    driver: org.postgresql.Driver
+    host: db-sbos-prod-instance-1.c10qruchydgi.ap-southeast-1.rds.amazonaws.com
+    port: 5432
+    database: node
+    username: node
+    password: UENusX4u28ULVdcA
 
 #codes: "cdnis,isf,hkcec,tts,vtchk,topform"    
 #codes: "swire,suss,starbucks" 
