@@ -266,7 +266,7 @@ class DataFlow(object):
                                                             data_type="TEMPERATURE", 
                                                             name=node_device_serial,                                                       
                                                             data_id = device_data_id,
-                                                            desc = f"cid {sys_df.loc[i, 'company_id']} node.device serial {node_device_serial} device_id: {device_data_id}",                                                        
+                                                            desc = f"cid {sys_df.loc[i, 'company_id']} node.device serial {node_device_serial} device_id: {device_data_id}",  
                                                             ref_id=sys_df.loc[i, 'id'] 
                                                         )  
                     else:
