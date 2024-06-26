@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import uuid
 from enum import Enum
 from common import zeroUUID
@@ -239,4 +239,12 @@ class Energy:
             return meter_id
         
     
-    
+    def purgeVirtualStuff(self, tenant_id):
+        connection = self.engine.connect()        
+
+        sql = text("DELETE FROM energy_virtual_datapoint WHERE tenant_id = :tenant_id")        
+        connection.execute(sql, tenant_id=tenant_id)
+        sql = text("DELETE FROM energy_virtual_relationship WHERE tenant_id = :tenant_id")
+        connection.execute(sql, tenant_id=tenant_id)
+
+        connection.close()

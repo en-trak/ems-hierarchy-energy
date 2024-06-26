@@ -52,7 +52,10 @@ def Migrate(code, simulation = True, purgeRelations = False, logger=None):
         logger.info("====================== TenantTree purge ==========================")
         hr.purgeTree(tenant.id.values[0],
                         tenant.name.values[0],
-                        tenant.company_code.values[0])  
+                        tenant.company_code.values[0]) 
+         
+        hr.energy.purgeVirtualStuff(tenant.id.values[0])
+        
 
     
     # generate tenant tree in dataflow
@@ -136,7 +139,7 @@ def main():
             handler.setLevel(logging.ERROR)
             logger.addHandler(handler)
 
-            Migrate(code, simulation = False, purgeRelations = False, logger=logger)
+            Migrate(code, simulation = False, purgeRelations = True, logger=logger)
 
     MigrateSites(codes_list)
     
