@@ -95,10 +95,17 @@ class DataFlow(object):
 
         sys_df = self.ems.systems(code=self.code)
         # print("----------------------------------------------------------------")
-        # 因为某些列包含'nan'/ NaN / 5123.0导致无法做merge，暂时可以用to_csv,然后read_csv可以避免这个问题
+        # 因为某些列包含'nan'/ NaN / 5123.0导致无法做merge，暂时可以用to_csv,然后read_csv可以避免这个问题        
         sys_df.to_csv(f"{self.site_path}/sys_df.csv", index=False)
-        sys_df = pd.read_csv(f"{self.site_path}/sys_df.csv", index_col=False)
+        sys_df = pd.read_csv(f"{self.site_path}/sys_df.csv", index_col=False)        
+        sys_df['source_key'] = sys_df['source_key'].replace(np.nan, '')
+        sys_df['meter_id'] = sys_df['meter_id'].replace(np.nan, '-1')
+        sys_df['meter_id'] = sys_df['meter_id'].replace(np.nan, '-1')
+        sys_df['meter_id'] = sys_df['meter_id'].astype(int)
         # print(sys_df[:2])
+        if sys_df.shape[0] == 0:
+            self.logger.error(f"---- sys_df is empty, so can't do migrate for the systems of {self.code} ----")   
+            return None
 
         meters = self.energy.meter(columns = ["meter_id", "meter_ref_id"])
         meters.to_csv(f"{self.site_path}/meters.csv", index=False)
@@ -121,6 +128,9 @@ class DataFlow(object):
         meter_dp_df.to_csv(f"{self.site_path}/meter_dp_df.csv", index=False)
         meter_dp_df = pd.read_csv(f"{self.site_path}/meter_dp_df.csv", index_col=False)
         # print(meter_dp_df[:2])
+        if meter_dp_df.shape[0] == 0:
+            self.logger.error(f"---- meter_dp_df is empty, so can't do migrate for the systems of {self.code} ----")   
+            return None
 
         # sys_dp_df = pd.merge(sys_df, dp, how="left", left_on="id", right_on="ref_id")
         sys_meter_dp_df = pd.merge(left=sys_df, 
@@ -133,6 +143,9 @@ class DataFlow(object):
         sys_meter_dp_df = pd.read_csv(f"{self.site_path}/sys_meter_dp_df.csv", index_col=False)
         # self.logger.info("---------------System with datapoint-----------------")
         # self.logger.info(sys_dp_df[:1])
+        if sys_meter_dp_df.shape[0] == 0:
+            self.logger.error(f"---- sys_meter_dp_df is empty, so can't do migrate for the systems of {self.code} ----")       
+            return None     
 
         node_df = self.node.devices()
         node_df.to_csv(f"{self.site_path}/node_df.csv", index=False)
@@ -146,15 +159,16 @@ class DataFlow(object):
         result_df = pd.merge(sys_meter_dp_node_df, tenant_df, how="left", left_on="company_id", right_on="company_id")
         result_df.to_csv(f"{self.site_path}/result_df.csv", index=False)
         # self.logger.info("---------------System with datapoint, tenant-----------------")
-        # self.logger.info(result_df[:8])
+        # self.logger.info(result_df[:8])        
 
         # release dataframe
         del tenant_df
         del sys_df
-        del meters
+        del meters 
         del meter_dp_df
         del sys_meter_dp_df
         del sys_meter_dp_node_df
+        del node_df
 
         return result_df
     

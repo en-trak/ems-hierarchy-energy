@@ -61,6 +61,9 @@ def Migrate(code, simulation = True, purgeRelations = False, logger=None):
     # generate tenant tree in dataflow
     dataFlow = DataFlow(code, components_binding, simulation=simulation, logger=logger)
     df = dataFlow.PreparingData()
+    if df is None or df.shape[0] == 0:
+        logger.error("no do migrate dataflow")
+        return None
     
     df = dataFlow.LoadData()
     logger.info("====================== create_nodes_and_datapoints ==========================")
@@ -142,6 +145,8 @@ def main():
             Migrate(code, simulation = False, purgeRelations = True, logger=logger)
 
     MigrateSites(codes_list)
+
+    logger.error(f"---- DONE ----")
     
     
 if __name__ == "__main__":

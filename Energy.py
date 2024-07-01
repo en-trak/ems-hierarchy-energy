@@ -67,6 +67,7 @@ class Energy:
         dataDF = pd.read_sql_query(sql, self.engine)
         dataDF['meter_id'] = dataDF['meter_id'].astype(str)
         dataDF['meter_ref_id'] = dataDF['meter_ref_id'].astype(str)
+        dataDF['serial'] = dataDF['serial'].astype(str)
 
         return dataDF[columns]    
     
@@ -95,6 +96,7 @@ class Energy:
             'dp_id': str,
             'ref_id': str,
             'meter_id': str,
+            'source_key': str,
         }
 
         # Read the data into the DataFrame with specified data types

@@ -62,8 +62,10 @@ class EMS:
         dtypes = {
             'parent_system_id': str,
             'meter_id': str,
+            'source_key': str,
             'company_id': str,
             'city_id': str,
+            'serial_device': str,
         }
 
         # Read the data into the DataFrame with specified data types
