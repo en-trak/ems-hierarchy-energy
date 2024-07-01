@@ -99,8 +99,7 @@ class DataFlow(object):
         sys_df.to_csv(f"{self.site_path}/sys_df.csv", index=False)
         sys_df = pd.read_csv(f"{self.site_path}/sys_df.csv", index_col=False)        
         sys_df['source_key'] = sys_df['source_key'].replace(np.nan, '')
-        sys_df['meter_id'] = sys_df['meter_id'].replace(np.nan, '-1')
-        sys_df['meter_id'] = sys_df['meter_id'].replace(np.nan, '-1')
+        sys_df['meter_id'] = sys_df['meter_id'].replace(np.nan, '-1')        
         sys_df['meter_id'] = sys_df['meter_id'].astype(int)
         # print(sys_df[:2])
         if sys_df.shape[0] == 0:
